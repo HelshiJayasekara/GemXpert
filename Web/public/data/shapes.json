@@ -1,0 +1,16 @@
+{
+  "items": [
+    { "id": "round",    "displayName": "Round Brilliant", "prefabResource": "GemXpert/Gemstones/Gem_Round",
+      "defaultLengthMm": 6.5, "defaultWidthMm": 6.5, "depthRatio": 0.609, "lockAspect": true,  "minLengthMm": 3.0, "maxLengthMm": 10.0 },
+    { "id": "oval",     "displayName": "Oval",            "prefabResource": "GemXpert/Gemstones/Gem_Oval",
+      "defaultLengthMm": 8.0, "defaultWidthMm": 6.0, "depthRatio": 0.610, "lockAspect": false, "minLengthMm": 5.0, "maxLengthMm": 12.0 },
+    { "id": "cushion",  "displayName": "Cushion",         "prefabResource": "GemXpert/Gemstones/Gem_Cushion",
+      "defaultLengthMm": 6.5, "defaultWidthMm": 6.5, "depthRatio": 0.634, "lockAspect": false, "minLengthMm": 4.5, "maxLengthMm": 10.0 },
+    { "id": "pear",     "displayName": "Pear",            "prefabResource": "GemXpert/Gemstones/Gem_Pear",
+      "defaultLengthMm": 9.0, "defaultWidthMm": 6.0, "depthRatio": 0.624, "lockAspect": false, "minLengthMm": 6.0, "maxLengthMm": 12.0 },
+    { "id": "emerald",  "displayName": "Emerald Cut",     "prefabResource": "GemXpert/Gemstones/Gem_EmeraldCut",
+      "defaultLengthMm": 7.0, "defaultWidthMm": 5.0, "depthRatio": 0.632, "lockAspect": false, "minLengthMm": 5.0, "maxLengthMm": 11.0 },
+    { "id": "princess", "displayName": "Princess Cut",    "prefabResource": "GemXpert/Gemstones/Gem_Princess",
+      "defaultLengthMm": 5.5, "defaultWidthMm": 5.5, "depthRatio": 0.740, "lockAspect": true,  "minLengthMm": 3.5, "maxLengthMm": 8.5 }
+  ]
+}
