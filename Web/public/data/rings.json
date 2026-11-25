@@ -1,0 +1,345 @@
+{
+  "items": [
+    {
+      "id": "solitaire",
+      "displayName": "Classic Solitaire",
+      "settingStyle": "4-prong solitaire",
+      "description": "A single centre stone held high by four slender prongs on a tapered comfort-fit band.",
+      "prefabResource": "GemXpert/Rings/Ring_Solitaire",
+      "innerDiameterMm": 17.3,
+      "bandWidthMm": 2.0,
+      "bandThicknessMm": 1.7,
+      "defaultMetalId": "yellow_gold",
+      "defaultGemstoneId": "diamond",
+      "defaultShapeId": "round",
+      "metalRendererPrefixes": [
+        "Band",
+        "Head",
+        "Prong",
+        "Gallery"
+      ],
+      "accentStoneRendererPrefixes": [],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "fallbackPositionMm": {
+            "x": 0.0,
+            "y": 14.45,
+            "z": 0.0
+          },
+          "fallbackEulerDeg": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "pear",
+            "emerald",
+            "princess"
+          ],
+          "minLengthMm": 5.0,
+          "maxLengthMm": 9.5,
+          "minWidthMm": 5.0,
+          "maxWidthMm": 8.0,
+          "maxDepthMm": 5.2,
+          "adjustRangeMm": {
+            "x": 0.3,
+            "y": 0.6,
+            "z": 0.3
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "halo",
+      "displayName": "Halo",
+      "settingStyle": "Halo with pave accent stones",
+      "description": "The centre stone is framed by a ring of small accent stones that makes it look larger and brighter.",
+      "prefabResource": "GemXpert/Rings/Ring_Halo",
+      "innerDiameterMm": 17.3,
+      "bandWidthMm": 2.2,
+      "bandThicknessMm": 1.8,
+      "defaultMetalId": "white_gold",
+      "defaultGemstoneId": "blue_sapphire",
+      "defaultShapeId": "round",
+      "metalRendererPrefixes": [
+        "Band",
+        "Head",
+        "Prong",
+        "Halo",
+        "Gallery"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "fallbackPositionMm": {
+            "x": 0.0,
+            "y": 14.47,
+            "z": 0.0
+          },
+          "fallbackEulerDeg": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion"
+          ],
+          "minLengthMm": 5.0,
+          "maxLengthMm": 8.0,
+          "minWidthMm": 5.0,
+          "maxWidthMm": 7.0,
+          "maxDepthMm": 4.6,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.4,
+            "z": 0.2
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "three_stone",
+      "displayName": "Three-Stone",
+      "settingStyle": "Trilogy, centre plus two side stones",
+      "description": "A centre stone flanked by two smaller round stones, representing past, present and future.",
+      "prefabResource": "GemXpert/Rings/Ring_ThreeStone",
+      "innerDiameterMm": 17.3,
+      "bandWidthMm": 2.4,
+      "bandThicknessMm": 1.8,
+      "defaultMetalId": "rose_gold",
+      "defaultGemstoneId": "ruby",
+      "defaultShapeId": "oval",
+      "metalRendererPrefixes": [
+        "Band",
+        "Head",
+        "Prong",
+        "Gallery"
+      ],
+      "accentStoneRendererPrefixes": [],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "fallbackPositionMm": {
+            "x": 0.0,
+            "y": 14.16,
+            "z": 0.0
+          },
+          "fallbackEulerDeg": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "emerald",
+            "princess"
+          ],
+          "minLengthMm": 5.0,
+          "maxLengthMm": 8.5,
+          "minWidthMm": 5.0,
+          "maxWidthMm": 7.0,
+          "maxDepthMm": 4.8,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.4,
+            "z": 0.2
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        },
+        {
+          "id": "SideL",
+          "role": "side",
+          "fallbackPositionMm": {
+            "x": -6.1,
+            "y": 12.96,
+            "z": 0.0
+          },
+          "fallbackEulerDeg": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 14.0
+          },
+          "supportedShapes": [
+            "round"
+          ],
+          "minLengthMm": 3.5,
+          "maxLengthMm": 4.5,
+          "minWidthMm": 3.5,
+          "maxWidthMm": 4.5,
+          "maxDepthMm": 2.8,
+          "adjustRangeMm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "fixedGemstoneId": "diamond",
+          "fixedShapeId": "round",
+          "fixedLengthMm": 4.0
+        },
+        {
+          "id": "SideR",
+          "role": "side",
+          "fallbackPositionMm": {
+            "x": 6.1,
+            "y": 12.96,
+            "z": 0.0
+          },
+          "fallbackEulerDeg": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": -14.0
+          },
+          "supportedShapes": [
+            "round"
+          ],
+          "minLengthMm": 3.5,
+          "maxLengthMm": 4.5,
+          "minWidthMm": 3.5,
+          "maxWidthMm": 4.5,
+          "maxDepthMm": 2.8,
+          "adjustRangeMm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "fixedGemstoneId": "diamond",
+          "fixedShapeId": "round",
+          "fixedLengthMm": 4.0
+        }
+      ]
+    },
+    {
+      "id": "prong",
+      "displayName": "Six-Prong Cathedral",
+      "settingStyle": "6-prong cathedral setting",
+      "description": "Six prongs rise from arched cathedral shoulders, holding the stone securely and letting in plenty of light.",
+      "prefabResource": "GemXpert/Rings/Ring_Prong",
+      "innerDiameterMm": 17.3,
+      "bandWidthMm": 2.2,
+      "bandThicknessMm": 1.8,
+      "defaultMetalId": "white_gold",
+      "defaultGemstoneId": "emerald",
+      "defaultShapeId": "cushion",
+      "metalRendererPrefixes": [
+        "Band",
+        "Head",
+        "Prong",
+        "Cathedral",
+        "Gallery"
+      ],
+      "accentStoneRendererPrefixes": [],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "fallbackPositionMm": {
+            "x": 0.0,
+            "y": 15.34,
+            "z": 0.0
+          },
+          "fallbackEulerDeg": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "pear"
+          ],
+          "minLengthMm": 5.5,
+          "maxLengthMm": 10.0,
+          "minWidthMm": 5.0,
+          "maxWidthMm": 8.0,
+          "maxDepthMm": 5.6,
+          "adjustRangeMm": {
+            "x": 0.3,
+            "y": 0.6,
+            "z": 0.3
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "bezel",
+      "displayName": "Modern Bezel",
+      "settingStyle": "Full bezel",
+      "description": "A smooth metal collar wraps the whole girdle. Very secure, sleek and snag-free. Tolerances are tight.",
+      "prefabResource": "GemXpert/Rings/Ring_Bezel",
+      "innerDiameterMm": 17.3,
+      "bandWidthMm": 2.6,
+      "bandThicknessMm": 1.9,
+      "defaultMetalId": "silver",
+      "defaultGemstoneId": "yellow_sapphire",
+      "defaultShapeId": "oval",
+      "metalRendererPrefixes": [
+        "Band",
+        "Bezel",
+        "Gallery"
+      ],
+      "accentStoneRendererPrefixes": [],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "fallbackPositionMm": {
+            "x": 0.0,
+            "y": 13.92,
+            "z": 0.0
+          },
+          "fallbackEulerDeg": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "emerald",
+            "princess"
+          ],
+          "minLengthMm": 5.0,
+          "maxLengthMm": 8.0,
+          "minWidthMm": 5.0,
+          "maxWidthMm": 7.0,
+          "maxDepthMm": 4.5,
+          "adjustRangeMm": {
+            "x": 0.0,
+            "y": 0.2,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    }
+  ]
+}

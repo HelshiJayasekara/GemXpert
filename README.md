@@ -13,11 +13,11 @@ finger wearable adds orientation and gesture input.
 |---|---|---|
 | 1 | Project setup, showroom scene builder, VR UI framework, navigation, run modes, catalogue schema | **Code written, awaiting first compile** (Unity was not installed when this was written) |
 | 2 | Blender ring & gemstone models | **Done in Blender**: 5 rings, 6 cuts, materials, FBX/GLB exports, Cycles renders ([pipeline](Documentation/Architecture/ASSET_PIPELINE.md)). Unity import not yet checked |
-| UI | Interactive browser preview of the full interface (`Prototype/Interface`) | **Working**: uses the real models, catalogue and fit rules |
+| Web | GemXpert Studio web app (`Web/`, Vite + React + TypeScript + three.js), deployable to Vercel at gemxpert.4axismedia.com ([deploy guide](Documentation/Deployment/VERCEL_DEPLOY.md)) | **Working** locally: all screens, ring on a clean rigged hand, Bluetooth wearable. Replaces `Prototype/Interface` (kept for reference) |
 | Extra | Design a ring from a photo: Claude reads the design, a JS generator rebuilds it; `build_custom.py` builds the same spec for Unity ([ring spec](Documentation/Architecture/RING_SPEC.md)) | **Working** in the interface. Runs through claude.ai on the published page, or through `Tools/serve_interface.py` with your own API key on the local copy. A real Claude answer not yet seen |
 | 3 | Ring / gemstone / metal / fit systems | Not started |
 | 4 | Virtual hand, ring-on-finger, inspection | Not started |
-| 5 | ESP32 BLE layer + mock simulator | Not started |
+| 5 | ESP32 wearable layer + mock simulator | **Started**: ESP32 + MPU6050 firmware streams orientation and taps over Bluetooth LE; the web app's ring and hand follow it ([setup & wiring](Documentation/Hardware/ESP32_WEARABLE_SETUP.md)). Unity transport not started |
 | 6 | Saved designs, polish, performance | Not started |
 
 ## Quick start
@@ -42,7 +42,8 @@ Full test procedure: [Documentation/Testing/PHASE1_TESTING.md](Documentation/Tes
 ```
 Assets/GemXpert/   Unity content (Scripts, Configurations, Scenes, Materials, Prefabs, Tests ...)
 Blender/           Scripts (model generators), Source (.blend), Exports (FBX/GLB)
-Firmware/ESP32/    Wearable firmware (Phase 5)
+Web/               GemXpert Studio web app (Vite + React + TypeScript), deployed on Vercel
+Firmware/ESP32/    Wearable firmware, Bluetooth LE (Phase 5)
 Tools/BleBridge/   macOS BLE -> UDP bridge for the editor (Phase 5)
 Documentation/     Architecture, Hardware, Testing
 ```

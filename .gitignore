@@ -53,3 +53,6 @@ Firmware/**/.pio/
 /Tools/local_secrets.env
 /GemXpert.zip
 /.claude/
+
+# ---- ESP32 firmware: local WiFi credentials ----
+Firmware/**/secrets.h

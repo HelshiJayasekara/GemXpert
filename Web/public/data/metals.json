@@ -1,0 +1,12 @@
+{
+  "items": [
+    { "id": "yellow_gold", "displayName": "18K Yellow Gold", "colorHex": "#F2C46B", "metallic": 1.0, "smoothness": 0.88,
+      "description": "Warm, classic gold tone." },
+    { "id": "white_gold",  "displayName": "18K White Gold",  "colorHex": "#DCDDDA", "metallic": 1.0, "smoothness": 0.9,
+      "description": "Rhodium-plated, bright and cool." },
+    { "id": "rose_gold",   "displayName": "18K Rose Gold",   "colorHex": "#E8B19A", "metallic": 1.0, "smoothness": 0.88,
+      "description": "A copper alloy gives it a soft pink warmth." },
+    { "id": "silver",      "displayName": "Sterling Silver", "colorHex": "#F4F2EC", "metallic": 1.0, "smoothness": 0.86,
+      "description": "Bright, affordable and polished to a high lustre." }
+  ]
+}
