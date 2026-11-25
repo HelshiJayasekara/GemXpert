@@ -1,0 +1,618 @@
+{
+  "description": "Pendants, necklaces, bracelets and earring pairs. Same mount schema as rings.json; built by Blender/Scripts/build_jewellery.py.",
+  "items": [
+    {
+      "id": "pendant_solitaire",
+      "category": "pendant",
+      "builder": "pendant",
+      "pendantStyle": "solitaire",
+      "modelFile": "Pendant_Solitaire",
+      "display": "none",
+      "displayName": "Solitaire Pendant",
+      "settingStyle": "Four-claw drop on an 18-inch cable chain",
+      "description": "A single stone held by four claws, hanging from a bail on a fine cable chain. Simple and timeless.",
+      "chainLengthMm": 450,
+      "defaultMetalId": "yellow_gold",
+      "defaultGemstoneId": "diamond",
+      "defaultShapeId": "round",
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "pear",
+            "emerald",
+            "princess"
+          ],
+          "minLengthMm": 4.5,
+          "maxLengthMm": 10,
+          "minWidthMm": 4.0,
+          "maxWidthMm": 9.0,
+          "maxDepthMm": 6.5,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "pendant_halo",
+      "category": "pendant",
+      "builder": "pendant",
+      "pendantStyle": "halo",
+      "modelFile": "Pendant_Halo",
+      "display": "none",
+      "displayName": "Halo Pendant",
+      "settingStyle": "Centre stone ringed by bead-set accents",
+      "description": "A frame of small diamond-style accents makes the centre stone look larger and adds sparkle at the neckline.",
+      "chainLengthMm": 450,
+      "defaultMetalId": "white_gold",
+      "defaultGemstoneId": "blue_sapphire",
+      "defaultShapeId": "oval",
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "pear"
+          ],
+          "minLengthMm": 5.0,
+          "maxLengthMm": 10,
+          "minWidthMm": 4.5,
+          "maxWidthMm": 8.0,
+          "maxDepthMm": 5.5,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "pendant_bezel",
+      "category": "pendant",
+      "builder": "pendant",
+      "pendantStyle": "bezel",
+      "modelFile": "Pendant_Bezel",
+      "display": "none",
+      "displayName": "Bezel Drop Pendant",
+      "settingStyle": "Full bezel, snag-free",
+      "description": "A smooth metal collar wraps the stone. Secure for everyday wear, with a clean modern outline.",
+      "chainLengthMm": 450,
+      "defaultMetalId": "yellow_gold",
+      "defaultGemstoneId": "emerald",
+      "defaultShapeId": "emerald",
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "pear",
+            "emerald"
+          ],
+          "minLengthMm": 5.0,
+          "maxLengthMm": 11,
+          "minWidthMm": 4.5,
+          "maxWidthMm": 8.5,
+          "maxDepthMm": 6.0,
+          "adjustRangeMm": {
+            "x": 0,
+            "y": 0.2,
+            "z": 0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "necklace_riviera",
+      "category": "necklace",
+      "builder": "riviera",
+      "modelFile": "Necklace_Riviera",
+      "display": "none",
+      "displayName": "Riviera Necklace",
+      "settingStyle": "Graduated line of 22 claw-set accents with a centre drop",
+      "description": "Diamond-style accents graduate from 3.4 mm at the centre to 2.1 mm, framing a swappable centre drop. Cable chain at the back.",
+      "chainLengthMm": 430,
+      "accentsPerSide": 11,
+      "defaultMetalId": "white_gold",
+      "defaultGemstoneId": "ruby",
+      "defaultShapeId": "oval",
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "pear"
+          ],
+          "minLengthMm": 5.0,
+          "maxLengthMm": 10,
+          "minWidthMm": 4.5,
+          "maxWidthMm": 8.0,
+          "maxDepthMm": 6.0,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "necklace_station",
+      "category": "necklace",
+      "builder": "station",
+      "modelFile": "Necklace_Station",
+      "display": "none",
+      "displayName": "Bezel Station Necklace",
+      "settingStyle": "Six bezel stations and a bezel centre drop",
+      "description": "Six 3.5 mm bezel-set accents spaced along a cable chain, with the centre stone in a matching bezel drop.",
+      "chainLengthMm": 450,
+      "stationStoneMm": 3.5,
+      "stationOffsetsMm": [
+        28,
+        58,
+        90
+      ],
+      "defaultMetalId": "rose_gold",
+      "defaultGemstoneId": "yellow_sapphire",
+      "defaultShapeId": "cushion",
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "emerald",
+            "princess"
+          ],
+          "minLengthMm": 5.0,
+          "maxLengthMm": 10,
+          "minWidthMm": 4.5,
+          "maxWidthMm": 8.5,
+          "maxDepthMm": 6.0,
+          "adjustRangeMm": {
+            "x": 0,
+            "y": 0.2,
+            "z": 0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "bracelet_bangle",
+      "category": "bracelet",
+      "builder": "bangle",
+      "modelFile": "Bracelet_Bangle",
+      "display": "none",
+      "displayName": "Three-Stone Bangle",
+      "settingStyle": "Rigid oval bangle, centre stone and two side diamonds",
+      "description": "A comfort-profile oval bangle (62 x 52 mm inside) with a claw-set centre stone between two 3 mm accents.",
+      "innerWidthMm": 62,
+      "innerHeightMm": 52,
+      "widthMm": 3.6,
+      "thicknessMm": 2.2,
+      "defaultMetalId": "yellow_gold",
+      "defaultGemstoneId": "blue_sapphire",
+      "defaultShapeId": "oval",
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "emerald",
+            "princess"
+          ],
+          "minLengthMm": 5.0,
+          "maxLengthMm": 9.0,
+          "minWidthMm": 4.5,
+          "maxWidthMm": 7.0,
+          "maxDepthMm": 5.0,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        },
+        {
+          "id": "SideL",
+          "role": "side",
+          "supportedShapes": [
+            "round"
+          ],
+          "minLengthMm": 2.5,
+          "maxLengthMm": 3.5,
+          "minWidthMm": 2.5,
+          "maxWidthMm": 3.5,
+          "maxDepthMm": 2.2,
+          "adjustRangeMm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "fixedGemstoneId": "diamond",
+          "fixedShapeId": "round",
+          "fixedLengthMm": 3.0
+        },
+        {
+          "id": "SideR",
+          "role": "side",
+          "supportedShapes": [
+            "round"
+          ],
+          "minLengthMm": 2.5,
+          "maxLengthMm": 3.5,
+          "minWidthMm": 2.5,
+          "maxWidthMm": 3.5,
+          "maxDepthMm": 2.2,
+          "adjustRangeMm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "fixedGemstoneId": "diamond",
+          "fixedShapeId": "round",
+          "fixedLengthMm": 3.0
+        }
+      ]
+    },
+    {
+      "id": "bracelet_tennis",
+      "category": "bracelet",
+      "builder": "tennis",
+      "modelFile": "Bracelet_Tennis",
+      "display": "none",
+      "displayName": "Tennis Bracelet",
+      "settingStyle": "Hinged line of 3 mm claw-set accents with a raised centre stone",
+      "description": "Flexible boxes, each holding a 3 mm diamond-style accent, with a larger centre stone raised on top and a box clasp underneath.",
+      "innerWidthMm": 58,
+      "innerHeightMm": 50,
+      "accentStoneMm": 3.0,
+      "defaultMetalId": "white_gold",
+      "defaultGemstoneId": "ruby",
+      "defaultShapeId": "round",
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "princess"
+          ],
+          "minLengthMm": 4.0,
+          "maxLengthMm": 7.5,
+          "minWidthMm": 4.0,
+          "maxWidthMm": 6.5,
+          "maxDepthMm": 4.5,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "earring_studs",
+      "category": "earring",
+      "builder": "stud",
+      "earringStyle": "solitaire",
+      "modelFile": "Earring_Studs",
+      "display": "none",
+      "displayName": "Solitaire Studs",
+      "settingStyle": "Matched pair, four claws, butterfly backs",
+      "description": "Two matched stones, each held by four claws on a post with a butterfly back. The everyday classic.",
+      "defaultMetalId": "white_gold",
+      "defaultGemstoneId": "diamond",
+      "defaultShapeId": "round",
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "pear",
+            "emerald",
+            "princess"
+          ],
+          "minLengthMm": 3.5,
+          "maxLengthMm": 8.0,
+          "minWidthMm": 3.5,
+          "maxWidthMm": 8.0,
+          "maxDepthMm": 5.5,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
+            "z": 0.2
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "earring_halo",
+      "category": "earring",
+      "builder": "stud",
+      "earringStyle": "halo",
+      "modelFile": "Earring_Halo",
+      "display": "none",
+      "displayName": "Halo Studs",
+      "settingStyle": "Matched pair ringed by bead-set accents",
+      "description": "Each centre stone sits in a frame of small diamond-style accents, so the pair looks larger and catches more light.",
+      "defaultMetalId": "rose_gold",
+      "defaultGemstoneId": "pink_sapphire",
+      "defaultShapeId": "cushion",
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "pear"
+          ],
+          "minLengthMm": 5.0,
+          "maxLengthMm": 9.0,
+          "minWidthMm": 4.5,
+          "maxWidthMm": 7.0,
+          "maxDepthMm": 5.0,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "earring_drops",
+      "category": "earring",
+      "builder": "drop",
+      "earringStyle": "bezel",
+      "modelFile": "Earring_Drops",
+      "display": "none",
+      "displayName": "Bezel Drop Earrings",
+      "settingStyle": "Matched bezel drops on French hooks",
+      "description": "Each stone hangs in a smooth full bezel from a jump ring and a French hook, so the pair moves and catches the light.",
+      "defaultMetalId": "yellow_gold",
+      "defaultGemstoneId": "amethyst",
+      "defaultShapeId": "pear",
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "oval",
+            "cushion",
+            "pear",
+            "emerald"
+          ],
+          "minLengthMm": 5.0,
+          "maxLengthMm": 11.0,
+          "minWidthMm": 4.0,
+          "maxWidthMm": 8.0,
+          "maxDepthMm": 5.5,
+          "adjustRangeMm": {
+            "x": 0.0,
+            "y": 0.2,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    }
+  ]
+}

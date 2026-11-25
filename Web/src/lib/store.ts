@@ -1,14 +1,14 @@
 // App state (zustand). Screens read from it; the 3D stage subscribes to it and follows the design.
 import { create } from "zustand";
-import type { Catalog, Design, Meta, RingDef } from "./catalog";
-import { DesignView, byId, loadCatalog } from "./catalog";
+import type { Catalog, Category, Design, Meta, RingDef } from "./catalog";
+import { DesignView, byId, categoryOf, loadCatalog } from "./catalog";
 
 export type ViewId = "welcome" | "how-it-works" | "showroom" | "rings" | "gemstones" | "customise" | "inspect" | "summary"
-  | "saved" | "wearable" | "photo";
+  | "saved" | "wearable" | "photo" | "photo-piece" | "gallery";
 export const VIEW_TITLES: Record<ViewId, string> = {
-  welcome: "Welcome", "how-it-works": "How It Works", showroom: "The Showroom", rings: "Ring Designs", gemstones: "Gemstones",
+  welcome: "Welcome", "how-it-works": "How It Works", showroom: "The Showroom", rings: "Jewellery Designs", gemstones: "Gemstones",
   customise: "Customise", inspect: "Inspect", summary: "Design Summary", saved: "Saved Designs", wearable: "Wearable Device",
-  photo: "From a Photo",
+  photo: "From a Photo", "photo-piece": "From a Photo", gallery: "Gemstone Gallery",
 };
 const isView = (v: string): v is ViewId => v in VIEW_TITLES;
 
@@ -18,6 +18,8 @@ export interface WearState {
   deviceName: string | null;
 }
 export interface SavedDesign { name: string; savedAt: string; design: Design }
+/** The loose stone shown in the Gemstone Gallery (separate from the design on display). */
+export interface GalleryStone { gemId: string; shapeId: string; lengthMm: number; widthMm: number }
 
 const CUSTOM_KEY = "gemxpert.customRings.v1";
 const SAVE_KEY = "gemxpert.savedDesigns.v1";
@@ -31,6 +33,9 @@ interface AppState {
   customRings: RingDef[]; draftRing: RingDef | null;
   customInfo: Record<string, { accentStones: number; accentSizeMm?: number }>;
   design: Design;
+  gallery: GalleryStone;
+  keepStone: boolean;             // set by the Gallery: settings chosen on Jewellery Designs keep that stone until you leave it
+  category: Category;             // the jewellery type being browsed (follows the piece on the stand)
   ringVersion: number;            // bump to force the stage to rebuild the ring (custom draft edits)
   compare: Design[];
   saved: SavedDesign[];
@@ -44,6 +49,7 @@ interface AppState {
   showToast(msg: string): void;
   patchDesign(p: Partial<Design>): void;
   selectRing(id: string, announce?: boolean): void;
+  setCategory(c: Category): void;
   setShape(id: string): void;
   restore(d: Design): void;
   addCompare(d?: Design): void;
@@ -51,6 +57,7 @@ interface AppState {
   setDraft(def: RingDef | null): void;
   addCustomRing(def: RingDef): void; removeCustomRing(id: string): void;
   setWear(p: Partial<WearState>): void;
+  setGallery(p: Partial<GalleryStone>): void;
   gesture(kind: string): void;
 }
 
@@ -58,7 +65,8 @@ export const useApp = create<AppState>()((set, get) => ({
   cat: null, meta: null, loadError: null,
   customRings: [], draftRing: null, customInfo: {},
   design: { ringId: "solitaire", gemId: "diamond", shapeId: "round", lengthMm: 6.5, widthMm: 6.5, seat: { x: 0, y: 0, z: 0 }, metalId: "yellow_gold" },
-  ringVersion: 0, compare: [], saved: [],
+  gallery: { gemId: "blue_sapphire", shapeId: "oval", lengthMm: 8.0, widthMm: 6.0 }, keepStone: false,   // opens on a coloured stone
+  category: "ring", ringVersion: 0, compare: [], saved: [],
   view: "welcome", history: [], toast: null,
   onFinger: false, autoRotate: true, stageReady: false, stageError: null,
   wear: { mode: "off", status: "idle", deviceName: null },
@@ -66,11 +74,12 @@ export const useApp = create<AppState>()((set, get) => ({
   async init() {
     try {
       const { cat, meta } = await loadCatalog();
-      const customRings = readLS<RingDef[]>(CUSTOM_KEY, []).filter((r) => r && r.custom && r.spec);
+      const customRings = readLS<RingDef[]>(CUSTOM_KEY, []).filter((r) => r && r.custom && (r.spec || r.pieceSpec));
       const saved = readLS<SavedDesign[]>(SAVE_KEY, []);
       set({ cat, meta, customRings, saved: Array.isArray(saved) ? saved : [] });
       get().selectRing("solitaire");
-      get().syncFromHash();
+      // Every visit opens on the front page (Start Experience), even from a link to an inner page.
+      if (location.hash && location.hash !== "#welcome") history.replaceState(null, "", location.pathname + location.search);
     } catch (e) {
       console.error(e);
       set({ loadError: "GemXpert couldn't load its catalogue. Reload the page to try again." });
@@ -80,17 +89,19 @@ export const useApp = create<AppState>()((set, get) => ({
   go(view) {
     const { view: cur, history } = get();
     if (view === cur) return;
+    if (get().keepStone && view !== "rings") set({ keepStone: false });
     set({ history: [...history, cur], view });
     location.hash = view;
   },
   back() {
+    if (get().keepStone) set({ keepStone: false });
     const h = [...get().history];
     const v = h.pop();
     if (!v) return;
     set({ history: h, view: v });
     location.hash = v;
   },
-  home() { set({ history: [], view: "showroom" }); location.hash = "showroom"; },
+  home() { set({ history: [], view: "showroom", keepStone: false }); location.hash = "showroom"; },
   syncFromHash() {
     const v = location.hash.slice(1);
     const view = isView(v) ? v : "welcome";
@@ -106,17 +117,29 @@ export const useApp = create<AppState>()((set, get) => ({
     const r = allRings(s).find((x) => x.id === id);
     if (!r || !s.cat) return;
     const shape = byId(s.cat.shapes, r.defaultShapeId)!;
+    const stone = r.custom ? (r.spec || r.pieceSpec)?.stone : undefined;
     const design: Design = {
       ringId: r.id, metalId: r.defaultMetalId, gemId: r.defaultGemstoneId, shapeId: r.defaultShapeId,
-      lengthMm: r.custom && r.spec ? r.spec.stone.lengthMm : shape.defaultLengthMm,
-      widthMm: r.custom && r.spec ? r.spec.stone.widthMm : shape.defaultWidthMm,
+      lengthMm: stone ? stone.lengthMm : shape.defaultLengthMm,
+      widthMm: stone ? stone.widthMm : shape.defaultWidthMm,
       seat: { x: 0, y: 0, z: 0 },
     };
-    set({ design, ringVersion: s.ringVersion + 1 });
+    if (s.keepStone) {   // a stone picked in the Gemstone Gallery follows into the setting (the fit check flags it if it can't)
+      const { gemId, shapeId, lengthMm, widthMm } = s.design;
+      Object.assign(design, { gemId, shapeId, lengthMm, widthMm });
+    }
+    set({ design, category: categoryOf(r), ringVersion: s.ringVersion + 1 });
     if (announce) {
       const v = designView(get())!;
       get().showToast(`${r.displayName} with ${v.gem.displayName} ${v.shape.displayName.toLowerCase()} in ${v.metal.displayName}.`);
     }
+  },
+
+  setCategory(c) {
+    const s = get();
+    if (categoryOf(designView(s)!.ring) === c) { set({ category: c }); return; }
+    const first = allRings(s).find((r) => categoryOf(r) === c);
+    if (first) get().selectRing(first.id, true);
   },
 
   setShape(id) {
@@ -144,10 +167,14 @@ export const useApp = create<AppState>()((set, get) => ({
   removeCustomRing(id) {
     const customRings = get().customRings.filter((r) => r.id !== id);
     set({ customRings }); writeLS(CUSTOM_KEY, customRings);
-    if (get().design.ringId === id) get().selectRing(get().cat!.rings[0].id);
+    if (get().design.ringId === id) {   // fall back to the first catalogue piece of the same type
+      const c = get().category;
+      get().selectRing((get().cat!.rings.find((r) => categoryOf(r) === c) || get().cat!.rings[0]).id);
+    }
   },
 
   setWear(p) { set({ wear: { ...get().wear, ...p } }); },
+  setGallery(p) { set({ gallery: { ...get().gallery, ...p } }); },
 
   gesture(kind) {
     const s = get();
@@ -161,7 +188,7 @@ export const useApp = create<AppState>()((set, get) => ({
       s.patchDesign({ metalId: cycle(cat.metals.map((m) => m.id), s.design.metalId) });
       s.showToast(`Double tap: ${designView(get())!.metal.displayName}`);
     } else if (kind === "swipe") {
-      const list = [...cat.rings, ...s.customRings];
+      const list = [...cat.rings, ...s.customRings].filter((r) => categoryOf(r) === s.category);
       const keep = { gemId: s.design.gemId, metalId: s.design.metalId };
       s.selectRing(cycle(list.map((r) => r.id), s.design.ringId));
       s.patchDesign(keep);

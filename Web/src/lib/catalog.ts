@@ -15,14 +15,35 @@ export interface RingSpec {
   stone: { gemId: string; shapeId: string; lengthMm: number; widthMm: number };
   metalId: string; halo: { accentSizeMm: number }; sideStones: { sizeMm: number };
 }
+export type Category = "ring" | "pendant" | "necklace" | "bracelet" | "earring";
+export const CATEGORIES: { id: Category; label: string; plural: string; blurb: string }[] = [
+  { id: "ring", label: "Ring", plural: "Rings", blurb: "Five catalogue settings plus any you have designed from a photo." },
+  { id: "pendant", label: "Pendant", plural: "Pendants", blurb: "A single stone on a bail, hanging from an 18-inch cable chain." },
+  { id: "necklace", label: "Necklace", plural: "Necklaces", blurb: "Accent stones set along the necklace with a swappable centre drop." },
+  { id: "bracelet", label: "Bracelet", plural: "Bracelets", blurb: "A rigid bangle and a hinged tennis bracelet, each with a centre stone you choose." },
+  { id: "earring", label: "Earring", plural: "Earrings", blurb: "Matched pairs shown on their own: both earrings take the stone you choose." },
+];
+export const categoryOf = (r: { category?: Category }): Category => r.category || "ring";
+
 export interface RingDef {
   id: string; displayName: string; settingStyle: string; description: string;
+  category?: Category; modelFile?: string; display?: "stand" | "none";   // rings sit on the stand; every other piece is shown on its own
+  chainLengthMm?: number; innerWidthMm?: number; innerHeightMm?: number;
   innerDiameterMm: number; bandWidthMm: number; bandThicknessMm: number;
   defaultMetalId: string; defaultGemstoneId: string; defaultShapeId: string;
   metalRendererPrefixes: string[]; accentStoneRendererPrefixes?: string[];
   mounts: Mount[];
   custom?: boolean; spec?: RingSpec; source?: "photo" | "manual"; photo?: string | null;
+  baseId?: string; pieceSpec?: PieceSpec;   // a custom pendant, necklace or bracelet: a catalogue piece with its own stone and metal
 }
+/** "Design from a photo" for pendants, necklaces and bracelets: the closest catalogue piece, with the stone and metal read from the photo. */
+export interface PieceSpec {
+  specVersion: number; category: Category; name: string; baseId: string;
+  stone: { gemId: string; shapeId: string; lengthMm: number; widthMm: number };
+  metalId: string;
+}
+/** Catalogue id a design builds on (itself, or the piece a custom necklace or bracelet was made from). */
+export const baseOf = (r: { id: string; baseId?: string }): string => r.baseId || r.id;
 export interface Gemstone {
   id: string; displayName: string; mineral: string; description: string; colorHex: string;
   refractiveIndex: number; dispersion: number; hardnessMohs: number;
@@ -48,9 +69,24 @@ export const GEM_FILES: Record<string, string> = {
   round: "Gem_Round", oval: "Gem_Oval", cushion: "Gem_Cushion", pear: "Gem_Pear", emerald: "Gem_EmeraldCut", princess: "Gem_Princess",
 };
 // Specific gravity for carat estimates (diamond formulas scaled by SG / 3.52).
-const SG: Record<string, number> = { blue_sapphire: 4.0, ruby: 4.0, yellow_sapphire: 4.0, emerald: 2.72, diamond: 3.52 };
+const SG: Record<string, number> = {
+  blue_sapphire: 4.0, ruby: 4.0, yellow_sapphire: 4.0, pink_sapphire: 4.0, emerald: 2.72, diamond: 3.52,
+  blue_topaz: 3.53, citrine: 2.65, amethyst: 2.65, lemon_quartz: 2.65, garnet: 3.95, cats_eye: 3.72, zircon: 4.65,
+};
 // Standard jeweller's weight-estimation factors (diamond, mm -> ct).
 const CARAT_K: Record<string, number> = { round: 0.0061, oval: 0.0062, cushion: 0.0081, pear: 0.006, emerald: 0.0092, princess: 0.0083 };
+
+/** Specific gravity (density relative to water) used for carat estimates. */
+export const specificGravity = (gemId: string) => SG[gemId] ?? 3.52;
+/** Estimated carat weight of a stone from its cut and millimetre dimensions (jeweller's formulas, scaled by density). */
+export function estimateCarat(shapeId: string, gemId: string, L: number, W: number, D: number) {
+  const k = CARAT_K[shapeId];
+  const base = shapeId === "round" || shapeId === "oval" ? ((L + W) / 2) ** 2 * D * k : L * W * D * k;
+  return base * (specificGravity(gemId) / 3.52);
+}
+
+/** GLB / render base name of a catalogue piece. */
+export const pieceFile = (r: RingDef): string => r.modelFile || RING_FILES[r.id];
 
 export async function loadCatalog(): Promise<{ cat: Catalog; meta: Meta }> {
   const get = async (p: string) => {
@@ -58,9 +94,17 @@ export async function loadCatalog(): Promise<{ cat: Catalog; meta: Meta }> {
     if (!r.ok) throw new Error(`${p}: HTTP ${r.status}`);
     return r.json();
   };
-  const [rings, gemstones, shapes, metals, meta] = await Promise.all(
-    ["rings", "gemstones", "shapes", "metals", "asset_metadata"].map((n) => get(`/data/${n}.json`)));
-  return { cat: { rings: rings.items, gemstones: gemstones.items, shapes: shapes.items, metals: metals.items }, meta };
+  const [rings, gemstones, shapes, metals, meta, jewellery, jmeta] = await Promise.all(
+    ["rings", "gemstones", "shapes", "metals", "asset_metadata", "jewellery", "jewellery_metadata"].map((n) => get(`/data/${n}.json`)));
+  // Pendants, necklaces and bracelets share the ring schema; their measured mounts join the ring metadata.
+  const pieces: RingDef[] = [
+    ...rings.items.map((r: RingDef) => ({ ...r, category: "ring" as const, display: "stand" as const })),
+    ...jewellery.items,
+  ];
+  return {
+    cat: { rings: pieces, gemstones: gemstones.items, shapes: shapes.items, metals: metals.items },
+    meta: { ...meta, rings: { ...meta.rings, ...jmeta.pieces } },
+  };
 }
 
 export const byId = <T extends { id: string }>(list: T[], id: string): T | undefined => list.find((x) => x.id === id);
@@ -78,13 +122,12 @@ export class DesignView {
   depthRatio(shapeId: string): number { return this.meta.gemCuts?.[shapeId]?.depth_ratio ?? this.shapeDef(shapeId).depthRatio; }
   get depthMm() { return this.d.widthMm * this.depthRatio(this.d.shapeId); }
   get carat() {
-    const { lengthMm: L, widthMm: W, shapeId, gemId } = this.d, D = this.depthMm, k = CARAT_K[shapeId];
-    const base = shapeId === "round" || shapeId === "oval" ? ((L + W) / 2) ** 2 * D * k : L * W * D * k;
-    return base * (SG[gemId] / 3.52);
+    const { lengthMm: L, widthMm: W, shapeId, gemId } = this.d;
+    return estimateCarat(shapeId, gemId, L, W, this.depthMm);
   }
   headDefaults(r: RingDef = this.ring): { L: number; W: number } {
     if (r.custom && r.spec) return { L: r.spec.stone.lengthMm, W: r.spec.stone.widthMm };
-    const c = this.meta.rings[r.id].mounts.Center;
+    const c = this.meta.rings[baseOf(r)].mounts.Center;
     return { L: c.headDefaultLengthMm, W: c.headDefaultWidthMm };
   }
   fit(): Fit {
@@ -105,7 +148,7 @@ export class DesignView {
     if (L - m.minLengthMm < margin || m.maxLengthMm - L < margin) near.push("Length is at the edge of what the head can hold.");
     if (W - m.minWidthMm < margin || m.maxWidthMm - W < margin) near.push("Width is at the edge of what the head can hold.");
     if (m.maxDepthMm - D < margin) near.push("Pavilion sits very close to the band.");
-    if (g.hardnessMohs < 8 && (r.id === "solitaire" || r.id === "prong"))
+    if (g.hardnessMohs < 8 && ["solitaire", "prong", "pendant_solitaire", "bracelet_tennis"].includes(baseOf(r)))
       near.push(`${g.displayName} (${g.hardnessMohs} Mohs) is softer than corundum; a bezel or halo protects it better.`);
     if (near.length) return { status: "warn", title: "Fits, with a note", reasons: near };
     return { status: "ok", title: "Fits the setting", reasons: [] };
@@ -125,5 +168,6 @@ export const SHAPE_ICONS: Record<string, string> = {
   emerald: '<polygon points="11,3 23,3 28,8 28,26 23,31 11,31 6,26 6,8"/><polygon points="13,9 21,9 22,10 22,24 21,25 13,25 12,24 12,10"/>',
   princess: '<rect x="5" y="5" width="24" height="24"/><path d="M5 5 L29 29 M29 5 L5 29"/>',
 };
+export const PIECE_NOUN: Record<Category, string> = { ring: "ring", pendant: "pendant", necklace: "necklace", bracelet: "bracelet", earring: "pair of earrings" };
 export const RING_ICON = "data:image/svg+xml," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 92 74"><rect width="92" height="74" fill="#0d0c0f"/><circle cx="46" cy="44" r="17" fill="none" stroke="#C9A45C" stroke-width="3"/><path d="M38 27 L46 15 L54 27 Z" fill="none" stroke="#E6C983" stroke-width="2"/></svg>');
