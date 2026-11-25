@@ -964,7 +964,8 @@ function flyTo(pos, target, ms = 700) {
 function setAutoRotate(on) { controls.autoRotate = on; document.getElementById("tRotate").setAttribute("aria-pressed", String(on)); }
 
 // wearable simulation
-const wear = { connected: false, auto: true, yaw: 0, pitch: 0, roll: 0, zero: { yaw: 0, pitch: 0, roll: 0 }, battery: 87, last: null, packet: null };
+const wear = { connected: false, auto: true, yaw: 0, pitch: 0, roll: 0, zero: { yaw: 0, pitch: 0, roll: 0 }, battery: 87, last: null, packet: null,
+  real: false, ws: null, q: null, host: null };   // real = live ESP32 over WiFi
 const clock = new THREE.Clock();
 function tick() {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
@@ -974,7 +975,10 @@ function tick() {
     controls.target.lerpVectors(tween.t0, tween.t1, e);
     if (k >= 1) tween = null;
   }
-  if (wear.connected) {
+  if (wear.connected && wear.real) {
+    if (wear.q) pivot.quaternion.slerp(wear.q, 1 - Math.exp(-20 * dt));
+    if (t - (wear.last || 0) > 0.12) { wear.last = t; updateDeviceReadout(); }
+  } else if (wear.connected) {
     const prev = { yaw: wear.yaw, pitch: wear.pitch, roll: wear.roll };
     if (wear.auto) {
       wear.yaw = 28 * Math.sin(t * 0.45); wear.pitch = 14 * Math.sin(t * 0.33 + 1); wear.roll = 22 * Math.sin(t * 0.27 + 2);
@@ -1715,11 +1719,75 @@ function viewPhoto(host) {
   });
 }
 
+// ---- real ESP32 over WiFi (WebSocket, port 81). Firmware: Firmware/ESP32/GemXpertWearable
+const ESP_KEY = "gemxpert-esp32-host";
+function savedEspHost() {
+  try { return new URLSearchParams(location.search).get("esp") || localStorage.getItem(ESP_KEY) || ""; } catch (e) { return ""; }
+}
+function connectEsp(input, quiet = false) {
+  const host = String(input || "").trim().replace(/^(wss?|https?):\/\//, "").replace(/\/.*$/, "");
+  if (!host) { toast("Type the IP address the ESP32 printed on the Serial Monitor."); return; }
+  if (wear.ws) { const old = wear.ws; wear.ws = null; old.close(); }
+  if (wear.connected && !wear.real) wear.connected = false;   // leave the simulator
+  wear.host = host;
+  let sock;
+  try { sock = new WebSocket(`ws://${host.includes(":") ? host : host + ":81"}/`); }
+  catch (e) { toast("That address doesn't look right. Use the IP, e.g. 192.168.1.42."); return; }
+  wear.ws = sock;
+  let opened = false;
+  setWearStatus(`Wearable: connecting to ${host}...`, false);
+  sock.onopen = () => {
+    opened = true;
+    try { localStorage.setItem(ESP_KEY, host); } catch (e) { /* private mode */ }
+    Object.assign(wear, { real: true, connected: true, auto: false, zero: { yaw: 0, pitch: 0, roll: 0 } });
+    setWearStatus("Wearable: ESP32 live", true);
+    setAutoRotate(false);
+    toast("ESP32 connected. Rotate the sensor to turn the ring.");
+    if (state.view === "wearable") show("wearable");
+  };
+  sock.onmessage = (ev) => {
+    let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (m.type === "imu") {
+      // sensor axes (X right, Y forward, Z up) -> three.js axes (X right, Y up, Z towards you)
+      wear.q = new THREE.Quaternion(m.q[1], m.q[3], -m.q[2], m.q[0]).normalize();
+      [wear.yaw, wear.pitch, wear.roll] = m.e;
+      wear.gyro = m.g; wear.accel = m.a; wear.packet = ev.data;
+    } else if (m.type === "gesture") gesture(m.gesture);
+  };
+  sock.onclose = () => {
+    if (wear.ws !== sock) return;           // replaced by a newer connection or disconnected on purpose
+    wear.ws = null;
+    const wasLive = wear.real;
+    Object.assign(wear, { real: false, connected: false, q: null });
+    setWearStatus(`Wearable: reconnecting to ${host}...`, false);
+    if (state.view === "wearable") show("wearable");
+    if (wasLive) toast("ESP32 connection lost. Reconnecting...");
+    else if (!opened && !quiet) toast(`Can't reach the ESP32 at ${host}. Same WiFi? Right IP? Still trying...`);
+    setTimeout(() => { if (!wear.ws && wear.host === host) connectEsp(host, true); }, 2000);
+  };
+}
+function disconnectEsp() {
+  wear.host = null;
+  if (wear.ws) { const s = wear.ws; wear.ws = null; s.close(); }
+  Object.assign(wear, { real: false, connected: false, q: null });
+  setWearStatus("Wearable: not connected", false);
+}
+
 function viewDevice(host) {
-  host.append(h(`<div class="device">
-    <div class="device-top"><div><b id="devName">${wear.connected ? "GemXpert Ring Controller" : "No device connected"}</b><br><small class="hint" id="devSub">${wear.connected ? "ESP32 + MPU6050 · BLE" : "Scan to find the wearable"}</small></div><span class="sim-badge">Simulated</span></div>
+  const live = wear.real, trying = !!wear.ws && !live;
+  host.append(h(`<h2 class="section" style="margin-top:0">ESP32 over WiFi</h2>
+  <div class="row" style="align-items:center">
+    <input id="espHost" type="text" placeholder="ESP32 IP, e.g. 192.168.1.42" value="${esc(wear.host || savedEspHost())}"
+      style="flex:1;min-width:0;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--ivory)">
+    <button class="btn ${live || trying ? "" : "primary"}" id="espConnect">${live || trying ? "Disconnect" : "Connect"}</button>
+  </div>
+  <p class="note" style="margin-top:6px">${live ? `Live from ${esc(wear.host)}. Rotate the sensor and the ring follows. Calibrate makes the current pose straight.`
+    : trying ? `Trying ${esc(wear.host)}... (the ESP32 must be on the same WiFi as this computer)`
+    : "Type the IP address the ESP32 prints on the Serial Monitor, then press Connect."}</p>
+  <div class="device">
+    <div class="device-top"><div><b id="devName">${wear.connected ? "GemXpert Ring Controller" : "No device connected"}</b><br><small class="hint" id="devSub">${live ? "ESP32 + MPU6050 · WiFi" : wear.connected ? "ESP32 + MPU6050 · BLE" : "Connect the ESP32 above, or try the simulator"}</small></div><span class="sim-badge" ${live ? 'style="color:var(--ok,#4cc38a);border-color:var(--ok,#4cc38a)"' : ""}>${live ? "Live" : "Simulated"}</span></div>
     <div class="row">
-      <button class="btn ${wear.connected ? "" : "primary"}" style="flex:1" id="devConnect">${wear.connected ? "Disconnect" : "Scan &amp; connect"}</button>
+      ${live ? "" : `<button class="btn" style="flex:1" id="devConnect">${wear.connected ? "Stop simulator" : "Simulate instead"}</button>`}
       <button class="btn" style="flex:1" id="devCal" ${wear.connected ? "" : "disabled"}>Calibrate</button>
     </div>
     <div class="readout" id="readout">
@@ -1744,8 +1812,22 @@ function viewDevice(host) {
   <h2 class="section">Data packet (JSON prototype format)</h2>
   <pre class="packet" id="packet">{ "connect to see live packets": true }</pre>
   <p class="note">This page simulates the wearable so the interface can be tried without hardware. The VR build connects to the real ESP32 over Bluetooth LE. The IMU supplies orientation and gestures. Hand position always comes from the headset's hand tracking.</p>`));
+  const espInput = host.querySelector("#espHost");
+  host.querySelector("#espConnect").onclick = () => {
+    if (wear.ws || wear.real) { disconnectEsp(); show("wearable"); return; }
+    connectEsp(espInput.value);
+    show("wearable");
+  };
+  espInput.addEventListener("keydown", (e) => { if (e.key === "Enter") host.querySelector("#espConnect").click(); });
+  if (live) {
+    host.querySelector("#devCal").onclick = () => { wear.ws?.send("recentre"); toast("Calibrated: the current pose is now straight."); };
+    host.querySelectorAll("#devAuto, #sRoll, #sPitch").forEach((el) => { el.disabled = true; });
+    updateDeviceReadout();
+    return;
+  }
   host.querySelector("#devConnect").onclick = () => {
     if (wear.connected) { wear.connected = false; setWearStatus("Wearable: not connected", false); show("wearable"); return; }
+    if (wear.ws) disconnectEsp();
     const btn = host.querySelector("#devConnect"); btn.disabled = true; btn.textContent = "Scanning...";
     setTimeout(() => { btn.textContent = "Connecting to GemXpert-Ring-01..."; }, 700);
     setTimeout(() => { wear.connected = true; setWearStatus("Wearable: connected (simulated)", true); setAutoRotate(false); show("wearable"); toast("GemXpert-Ring-01 connected (simulated)."); }, 1500);
@@ -1769,9 +1851,15 @@ function updateDeviceReadout() {
   set("gx", wear.gyro[0]); set("gy", wear.gyro[1]); set("gz", wear.gyro[2]);
   set("ax", wear.accel[0], 2); set("ay", wear.accel[1], 2); set("az", wear.accel[2], 2);
   set("oy", wear.yaw - wear.zero.yaw); set("op", wear.pitch - wear.zero.pitch); set("or", wear.roll - wear.zero.roll);
-  wear.battery = Math.max(5, wear.battery - 0.0004);
-  const b = document.getElementById("devBattery"); if (b) b.textContent = `Battery: ${wear.battery.toFixed(0)}% (simulated) · 50 Hz`;
+  const b = document.getElementById("devBattery");
   const pk = document.getElementById("packet");
+  if (wear.real) {
+    if (b) b.textContent = "Live from the ESP32 · 50 Hz";
+    if (pk && wear.packet) pk.textContent = wear.packet;
+    return;
+  }
+  wear.battery = Math.max(5, wear.battery - 0.0004);
+  if (b) b.textContent = `Battery: ${wear.battery.toFixed(0)}% (simulated) · 50 Hz`;
   if (pk) pk.textContent = JSON.stringify({ t: Math.round(performance.now()), g: wear.gyro.map((v) => +v.toFixed(1)), a: wear.accel.map((v) => +v.toFixed(3)),
     e: [+(wear.yaw - wear.zero.yaw).toFixed(1), +(wear.pitch - wear.zero.pitch).toFixed(1), +(wear.roll - wear.zero.roll).toFixed(1)], bat: Math.round(wear.battery) });
 }
@@ -1779,7 +1867,7 @@ function updateDeviceReadout() {
 function setWearStatus(text, on) {
   document.getElementById("wearText").textContent = text;
   document.getElementById("wearDot").classList.toggle("on", on);
-  document.getElementById("footStatus").textContent = on ? "Wearable connected (simulated)" : "Browser preview";
+  document.getElementById("footStatus").textContent = on ? (wear.real ? "Wearable connected (ESP32 live)" : "Wearable connected (simulated)") : "Browser preview";
 }
 
 function gesture(kind) {
@@ -1851,6 +1939,7 @@ async function boot() {
   // The panel works from the catalogue alone, so show it before the 3D models finish loading.
   show(location.hash.slice(1) || "welcome");
   resize();
+  if (savedEspHost()) connectEsp(savedEspHost(), true);   // reconnect to the last ESP32 automatically
   try {
     await syncStage();
     tick();

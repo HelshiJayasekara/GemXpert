@@ -1,0 +1,69 @@
+{
+  "items": [
+    {
+      "id": "blue_sapphire",
+      "displayName": "Blue Sapphire",
+      "mineral": "Corundum",
+      "description": "Deep royal blue corundum. Second only to diamond in hardness, so it suits everyday wear.",
+      "colorHex": "#1C3F94",
+      "refractiveIndex": 1.77,
+      "dispersion": 0.018,
+      "hardnessMohs": 9.0,
+      "transparency": 0.55,
+      "smoothness": 0.96,
+      "availableShapes": ["round", "oval", "cushion", "pear", "emerald", "princess"]
+    },
+    {
+      "id": "ruby",
+      "displayName": "Ruby",
+      "mineral": "Corundum",
+      "description": "Vivid red corundum coloured by chromium. Highly durable, with strong saturated colour.",
+      "colorHex": "#A3112A",
+      "refractiveIndex": 1.77,
+      "dispersion": 0.018,
+      "hardnessMohs": 9.0,
+      "transparency": 0.55,
+      "smoothness": 0.96,
+      "availableShapes": ["round", "oval", "cushion", "pear", "emerald", "princess"]
+    },
+    {
+      "id": "emerald",
+      "displayName": "Emerald",
+      "mineral": "Beryl",
+      "description": "Lush green beryl. Softer and more brittle than corundum, so protective settings are recommended.",
+      "colorHex": "#1E7B4F",
+      "refractiveIndex": 1.58,
+      "dispersion": 0.014,
+      "hardnessMohs": 7.75,
+      "transparency": 0.5,
+      "smoothness": 0.93,
+      "availableShapes": ["emerald", "oval", "cushion", "round", "pear", "princess"]
+    },
+    {
+      "id": "yellow_sapphire",
+      "displayName": "Yellow Sapphire",
+      "mineral": "Corundum",
+      "description": "Sunny golden corundum, bright and lively, with the same hardness as blue sapphire.",
+      "colorHex": "#E9B526",
+      "refractiveIndex": 1.77,
+      "dispersion": 0.018,
+      "hardnessMohs": 9.0,
+      "transparency": 0.6,
+      "smoothness": 0.96,
+      "availableShapes": ["round", "oval", "cushion", "pear", "emerald", "princess"]
+    },
+    {
+      "id": "diamond",
+      "displayName": "White Diamond-Style",
+      "mineral": "Diamond (visual example)",
+      "description": "A colourless, high-brilliance stone that shows how a white diamond would look in the setting.",
+      "colorHex": "#F3F6FA",
+      "refractiveIndex": 2.42,
+      "dispersion": 0.044,
+      "hardnessMohs": 10.0,
+      "transparency": 0.85,
+      "smoothness": 0.98,
+      "availableShapes": ["round", "oval", "cushion", "pear", "emerald", "princess"]
+    }
+  ]
+}
