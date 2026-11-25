@@ -1,0 +1,17 @@
+{
+  "specVersion": 1,
+  "id": "custom-example-six-prong-oval",
+  "name": "Six-Prong Oval Solitaire",
+  "source": "manual example",
+  "style": "solitaire",
+  "prongs": 6,
+  "cathedral": true,
+  "headHeight": "high",
+  "innerDiameterMm": 17.3,
+  "bandWidthMm": 2.0,
+  "bandThicknessMm": 1.7,
+  "stone": { "gemId": "blue_sapphire", "shapeId": "oval", "lengthMm": 9.0, "widthMm": 7.0 },
+  "metalId": "yellow_gold",
+  "halo": { "accentSizeMm": 1.3 },
+  "sideStones": { "sizeMm": 4.0 }
+}

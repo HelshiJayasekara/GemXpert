@@ -1,0 +1,42 @@
+{
+    "name": "GemXpert.Editor",
+    "rootNamespace": "GemXpert.EditorTools",
+    "references": [
+        "GemXpert.Core",
+        "GemXpert.UI",
+        "GemXpert.Interaction",
+        "GemXpert.Editor.Bootstrap",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "GEMXPERT_XRI",
+        "GEMXPERT_URP"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "3.0.0",
+            "define": "GEMXPERT_XRI"
+        },
+        {
+            "name": "com.unity.render-pipelines.universal",
+            "expression": "17.0.0",
+            "define": "GEMXPERT_URP"
+        }
+    ],
+    "noEngineReferences": false
+}

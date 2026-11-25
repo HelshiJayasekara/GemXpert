@@ -1,0 +1,1864 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GemXpert Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Marcellus&display=swap">
+<style>
+/* Layout: a jewellery-house showroom — live 3D display stand on the left, the GemXpert VR panel on the right
+   (stacks below the stage on phones). Single deliberate dark look, same tokens as the Unity UITheme. */
+:root {
+  color-scheme: dark;
+  --bg: #0A0A0C;
+  --surface: #141417;
+  --surface-2: #1C1B20;
+  --surface-3: #25232A;
+  --line: rgba(201, 164, 92, 0.24);
+  --line-strong: rgba(201, 164, 92, 0.62);
+  --gold: #C9A45C;
+  --gold-bright: #E6C983;
+  --gold-deep: #8E6F35;
+  --ivory: #F3EEE5;
+  --muted: #9D978C;
+  --faint: #6B665E;
+  --on-gold: #141210;
+  --ok: #73C291;
+  --warn: #E2B04A;
+  --bad: #E0675F;
+  --font-display: "Marcellus", "Times New Roman", serif;
+  --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 16px;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ivory); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+* { box-sizing: border-box; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+
+.app {
+  height: 100%;
+  display: flex; flex-direction: column; gap: 12px;
+  padding-block: 14px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- top bar */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 14px; min-width: 0; }
+.brand-mark { font-family: var(--font-display); font-size: 26px; letter-spacing: 0.32em; color: var(--gold-bright); }
+.brand-sub { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px;
+        font-size: 12px; color: var(--muted); background: var(--surface); white-space: nowrap; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+.dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+
+/* ---------- main layout */
+.layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 440px); gap: 14px; }
+
+.stage { position: relative; min-height: 0; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line);
+         background: radial-gradient(ellipse 70% 60% at 50% 32%, #2B2520 0%, #17141A 48%, #0B0A0D 85%); }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.hud { position: absolute; top: 14px; left: 14px; right: 14px; display: flex; justify-content: space-between; gap: 10px; pointer-events: none; flex-wrap: wrap; }
+.caption { background: rgba(10, 10, 12, 0.66); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; backdrop-filter: blur(6px); max-width: 100%; }
+.caption-title { font-family: var(--font-display); font-size: 18px; letter-spacing: 0.06em; }
+.caption-spec { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.fit { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+       background: rgba(10, 10, 12, 0.72); border: 1px solid currentColor; align-self: flex-start; }
+.fit.ok { color: var(--ok); } .fit.warn { color: var(--warn); } .fit.bad { color: var(--bad); }
+.toolbar { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 4px; padding: 5px;
+           background: rgba(10, 10, 12, 0.78); border: 1px solid var(--line); border-radius: 999px; backdrop-filter: blur(6px);
+           max-width: calc(100% - 28px); overflow-x: auto; }
+.tool { border: 0; background: transparent; color: var(--ivory); padding: 8px 12px; border-radius: 999px; font-size: 12.5px; white-space: nowrap; }
+.tool:hover { background: var(--surface-3); }
+.tool[aria-pressed="true"] { background: var(--gold); color: var(--on-gold); font-weight: 600; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--muted);
+           font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; background: var(--bg); transition: opacity 0.5s; }
+.loading.done { opacity: 0; pointer-events: none; }
+.toast { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--line-strong);
+         color: var(--ivory); padding: 8px 14px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity 0.25s; pointer-events: none; max-width: calc(100% - 28px); text-align: center; }
+.toast.show { opacity: 1; }
+
+/* ---------- the VR panel */
+.panel { min-height: 0; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; }
+.panel-head { display: grid; grid-template-columns: 96px 1fr 96px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); min-height: 56px; }
+.panel-head h1 { margin: 0; text-align: center; font-family: var(--font-display); font-weight: 400; font-size: 15px; letter-spacing: 0.26em; text-transform: uppercase; text-wrap: balance; }
+.quiet { border: 0; background: transparent; color: var(--gold-bright); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 6px; border-radius: 8px; }
+.quiet:hover { background: var(--surface-2); }
+.quiet[hidden] { display: none !important; }
+.panel-body { flex: 1; overflow-y: auto; padding: 22px 22px 26px; display: flex; flex-direction: column; gap: 18px; }
+.panel-foot { display: flex; justify-content: space-between; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--faint); }
+.panel-foot strong { font-family: var(--font-display); font-weight: 400; color: var(--gold); letter-spacing: 0.28em; }
+
+.eyebrow { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.lede { color: var(--muted); margin: 0; }
+h2.section { margin: 0; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn { border-radius: 12px; padding: 13px 18px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; font-size: 13px; border: 1px solid var(--gold-deep); background: var(--surface-2); }
+.btn:hover { background: var(--surface-3); border-color: var(--gold); }
+.btn.primary { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
+.btn.primary:hover { background: var(--gold-bright); }
+.btn.block { width: 100%; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* welcome */
+.welcome { align-items: center; text-align: center; justify-content: center; flex: 1; gap: 14px; padding-block: 20px; }
+.welcome .mark { font-family: var(--font-display); font-size: clamp(38px, 7vw, 54px); letter-spacing: 0.3em; color: var(--gold-bright); margin-right: -0.3em; line-height: 1.1; }
+.welcome .tag { letter-spacing: 0.08em; }
+.rule { width: 120px; height: 1px; background: var(--gold); opacity: 0.7; }
+
+/* tiles */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tile { text-align: left; border: 1px solid var(--gold-deep); background: var(--surface-2); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tile:hover { border-color: var(--gold); background: var(--surface-3); }
+.tile b { font-family: var(--font-display); font-weight: 400; font-size: 17px; color: var(--gold-bright); letter-spacing: 0.03em; }
+.tile span { font-size: 12.5px; color: var(--muted); }
+.tile.wide { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }
+
+/* option cards */
+.cards { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.card { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 14px; align-items: center; text-align: left; border: 1px solid var(--line); background: var(--surface-2); border-radius: 14px; padding: 8px 12px 8px 8px; }
+.card:hover { border-color: var(--gold-deep); }
+.card[aria-pressed="true"] { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.card img { width: 92px; height: 74px; object-fit: cover; border-radius: 9px; background: #0d0c0f; }
+.card b { font-family: var(--font-display); font-weight: 400; font-size: 17px; display: block; }
+.card .meta { font-size: 12px; color: var(--gold); letter-spacing: 0.04em; }
+.card p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+
+.gems { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.gem { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; text-align: left; border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+.gem[aria-pressed="true"] { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.swatch { width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25);
+          background: conic-gradient(from 20deg, var(--c1), var(--c2), var(--c1), var(--c3), var(--c1), var(--c2), var(--c1)); }
+.gem b { display: block; font-weight: 600; }
+.gem small { color: var(--muted); font-size: 12px; }
+.gem .num { font-family: var(--font-mono); font-size: 11.5px; color: var(--faint); text-align: right; }
+
+.shapes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.shape { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px 10px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; font-size: 12.5px; }
+.shape svg { width: 34px; height: 34px; }
+.shape[aria-pressed="true"] { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); color: var(--gold-bright); }
+.shape:disabled { opacity: 0.38; cursor: not-allowed; }
+.note { font-size: 12.5px; color: var(--muted); border-left: 2px solid var(--gold-deep); padding-left: 10px; }
+
+/* sliders */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.field label { font-weight: 600; font-size: 13.5px; }
+.val { font-family: var(--font-mono); font-size: 13px; color: var(--gold-bright); font-variant-numeric: tabular-nums; }
+.hint { font-size: 11.5px; color: var(--faint); font-family: var(--font-mono); }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; background: var(--track, var(--surface-3)); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--gold-bright); border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--gold); }
+input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--gold-bright); border: 2px solid var(--bg); }
+input[type="range"]:disabled { opacity: 0.4; }
+
+.metals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.metal { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); font-size: 11.5px; text-align: center; }
+.metal i { width: 32px; height: 32px; border-radius: 50%; background: radial-gradient(circle at 32% 28%, #fff 0%, var(--m) 30%, color-mix(in srgb, var(--m) 55%, #000) 100%); }
+.metal[aria-pressed="true"] { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+
+.fitbox { border-radius: 12px; padding: 12px 14px; border: 1px solid currentColor; background: rgba(0,0,0,0.2); }
+.fitbox.ok { color: var(--ok); } .fitbox.warn { color: var(--warn); } .fitbox.bad { color: var(--bad); }
+.fitbox b { display: block; font-size: 14px; }
+.fitbox ul { margin: 4px 0 0; padding-left: 18px; color: var(--ivory); font-size: 12.5px; }
+
+dl.spec { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; margin: 0; }
+dl.spec dt { color: var(--muted); font-size: 12.5px; }
+dl.spec dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+dl.spec dd.mono { font-family: var(--font-mono); font-weight: 500; font-size: 13px; }
+
+.compare { display: flex; gap: 8px; flex-wrap: wrap; }
+.cmp { border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 8px 10px; font-size: 12px; text-align: left; display: flex; gap: 8px; align-items: center; }
+.cmp .swatch { width: 18px; height: 18px; }
+.cmp.active { border-color: var(--gold); }
+
+.saved { display: flex; flex-direction: column; gap: 8px; }
+.saved-item { border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.saved-item b { font-weight: 600; }
+.saved-item small { color: var(--muted); font-family: var(--font-mono); font-size: 11.5px; }
+.empty { color: var(--muted); text-align: center; padding: 24px 10px; border: 1px dashed var(--line); border-radius: 12px; }
+
+/* design from a photo */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.drop { display: grid; place-items: center; min-height: 150px; border: 1px dashed var(--line-strong); border-radius: 14px; background: var(--surface-2);
+        color: var(--muted); text-align: center; cursor: pointer; overflow: hidden; padding: 10px; }
+.drop:hover { border-color: var(--gold); color: var(--ivory); }
+.drop img { max-height: 220px; width: auto; max-width: 100%; border-radius: 10px; }
+.drop small { color: var(--faint); }
+#photoIn:focus-visible + .row, .drop:focus-within { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+.findings { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
+.findings ul { margin: 0 0 4px; padding-left: 18px; font-size: 13px; }
+.findings ul.warn li { color: var(--warn); }
+.form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.form label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); font-weight: 600; min-width: 0; }
+.form label.check { flex-direction: row; align-items: center; gap: 8px; color: var(--ivory); grid-column: 1 / -1; }
+.form input[type="text"], .form select { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; color: var(--ivory); font-weight: 500; min-width: 0; }
+.form label:first-child { grid-column: 1 / -1; }
+code { font-family: var(--font-mono); font-size: 12px; color: var(--gold-bright); }
+
+.device { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--surface-2); display: flex; flex-direction: column; gap: 10px; }
+.device-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.readout { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); gap: 4px 12px; font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.readout span:nth-child(4n+1) { color: var(--muted); }
+pre.packet { margin: 0; padding: 10px; border-radius: 10px; background: #0c0c0e; border: 1px solid var(--line); font-family: var(--font-mono); font-size: 11px; color: var(--muted); overflow-x: auto; white-space: pre; }
+.sim-badge { font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--warn); border: 1px solid var(--warn); border-radius: 6px; padding: 2px 6px; }
+
+ol.steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; counter-reset: s; }
+ol.steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; counter-increment: s; }
+ol.steps li::before { content: counter(s, decimal-leading-zero); font-family: var(--font-display); color: var(--gold); font-size: 20px; }
+ol.steps b { display: block; }
+ol.steps span { color: var(--muted); font-size: 13px; }
+.keys { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; font-size: 13px; }
+.keys kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 1px 6px; color: var(--gold-bright); white-space: nowrap; }
+
+@media (max-width: 900px) {
+  html, body { height: auto; }
+  .app { height: auto; }
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .stage { height: 54vh; min-height: 320px; }
+  .panel-body { overflow: visible; }
+  .brand-sub { display: none; }
+  .panel-head { grid-template-columns: 76px minmax(0, 1fr) 76px; padding-inline: 8px; }
+  .panel-head h1 { font-size: 13px; letter-spacing: 0.14em; }
+  .quiet { font-size: 11px; letter-spacing: 0.06em; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">GEMXPERT</span><span class="brand-sub">Immersive Gemstone &amp; Jewellery Studio</span></div>
+    <div class="chips">
+      <span class="chip" title="The VR build runs on a headset, the XR Device Simulator or desktop mode. This page is the browser preview.">Browser preview of the VR interface</span>
+      <span class="chip" id="wearChip"><span class="dot" id="wearDot"></span><span id="wearText">Wearable: not connected</span></span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stage" aria-label="3D display stand">
+      <canvas id="view"></canvas>
+      <div class="hud">
+        <div class="caption"><div class="caption-title" id="capTitle">Classic Solitaire</div><div class="caption-spec" id="capSpec">-</div></div>
+        <div class="fit ok" id="fitChip" role="status">Fits the setting</div>
+      </div>
+      <div class="toolbar" role="toolbar" aria-label="Inspection">
+        <button class="tool" id="tRotate" aria-pressed="true">Auto-rotate</button>
+        <button class="tool" id="tIn" aria-label="Zoom in">Zoom +</button>
+        <button class="tool" id="tOut" aria-label="Zoom out">Zoom -</button>
+        <button class="tool" id="tClose">Close-up stone</button>
+        <button class="tool" id="tFinger" aria-pressed="false">On finger</button>
+        <button class="tool" id="tReset">Reset view</button>
+      </div>
+      <div class="toast" id="toast" aria-live="polite"></div>
+      <div class="loading" id="loading">Preparing the showroom...</div>
+    </section>
+
+    <aside class="panel" aria-label="GemXpert panel">
+      <div class="panel-head">
+        <button class="quiet" id="backBtn" style="justify-self:start">&lsaquo; Back</button>
+        <h1 id="screenTitle">Welcome</h1>
+        <button class="quiet" id="homeBtn" style="justify-self:end">Showroom</button>
+      </div>
+      <div class="panel-body" id="screen"></div>
+      <div class="panel-foot"><strong>GEMXPERT</strong><span id="footStatus">Browser preview</span></div>
+    </aside>
+  </main>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+// ------------------------------------------------------------------------------------------ data
+const RING_FILES = { solitaire: "Ring_Solitaire", halo: "Ring_Halo", three_stone: "Ring_ThreeStone", prong: "Ring_Prong", bezel: "Ring_Bezel" };
+const GEM_FILES = { round: "Gem_Round", oval: "Gem_Oval", cushion: "Gem_Cushion", pear: "Gem_Pear", emerald: "Gem_EmeraldCut", princess: "Gem_Princess" };
+// Specific gravity for carat estimates (diamond formulas scaled by SG / 3.52).
+const SG = { blue_sapphire: 4.0, ruby: 4.0, yellow_sapphire: 4.0, emerald: 2.72, diamond: 3.52 };
+// Standard jeweller's weight-estimation factors (diamond, mm -> ct).
+const CARAT_K = { round: 0.0061, oval: 0.0062, cushion: 0.0081, pear: 0.0060, emerald: 0.0092, princess: 0.0083 };
+const SHAPE_ICONS = {
+  round: '<circle cx="17" cy="17" r="13"/><polygon points="17,7 26,17 17,27 8,17"/>',
+  oval: '<ellipse cx="17" cy="17" rx="10" ry="14"/><polygon points="17,6 24,17 17,28 10,17"/>',
+  cushion: '<rect x="4" y="4" width="26" height="26" rx="9"/><rect x="11" y="11" width="12" height="12" rx="3"/>',
+  pear: '<path d="M17 31 C9 23 7 18 7 13 a10 10 0 0 1 20 0 c0 5 -2 10 -10 18z"/><polygon points="17,8 23,15 17,24 11,15"/>',
+  emerald: '<polygon points="11,3 23,3 28,8 28,26 23,31 11,31 6,26 6,8"/><polygon points="13,9 21,9 22,10 22,24 21,25 13,25 12,24 12,10"/>',
+  princess: '<rect x="5" y="5" width="24" height="24"/><path d="M5 5 L29 29 M29 5 L5 29"/>',
+};
+
+let CAT, META;
+const byId = (list, id) => list.find((x) => x.id === id);
+// Custom rings (designed from a photo or by hand) live beside the catalogue and behave like catalogue rings.
+const CUSTOM_KEY = "gemxpert.customRings.v1";
+let customRings = [];
+let draftRing = null;                       // the design being edited on the "From a photo" screen
+const customInfo = {};                      // accent counts etc., filled when a custom ring is built
+const allRings = () => [...CAT.rings, ...customRings, ...(draftRing ? [draftRing] : [])];
+const ringById = (id) => allRings().find((r) => r.id === id);
+const ring = () => ringById(state.ringId) || CAT.rings[0];
+function headDefaults(r) {
+  if (r.custom) return { L: r.spec.stone.lengthMm, W: r.spec.stone.widthMm };
+  const c = META.rings[r.id].mounts.Center;
+  return { L: c.headDefaultLengthMm, W: c.headDefaultWidthMm };
+}
+const ringExtras = (r) => (r.custom ? customInfo[r.id] || { accentStones: 0 } : META.rings[r.id]);
+function loadCustomRings() {
+  try { const v = JSON.parse(localStorage.getItem(CUSTOM_KEY) || "null"); if (Array.isArray(v)) customRings = v.filter((r) => r && r.custom && r.spec); } catch (e) { /* storage unavailable */ }
+}
+function storeCustomRings() {
+  try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(customRings)); } catch (e) { /* kept for this visit only */ }
+}
+const gemDef = () => byId(CAT.gemstones, state.gemId);
+const shapeDef = (id = state.shapeId) => byId(CAT.shapes, id);
+const metalDef = () => byId(CAT.metals, state.metalId);
+const centerMount = (r = ring()) => r.mounts.find((m) => m.role === "center");
+const depthRatio = (shapeId) => META.gemCuts?.[shapeId]?.depth_ratio ?? shapeDef(shapeId).depthRatio;
+
+const state = { ringId: "solitaire", gemId: "diamond", shapeId: "round", lengthMm: 6.5, widthMm: 6.5,
+                seat: { x: 0, y: 0, z: 0 }, metalId: "yellow_gold", compare: [], view: "welcome" };
+
+function applyRingDefaults(r) {
+  state.ringId = r.id;
+  state.metalId = r.defaultMetalId;
+  state.gemId = r.defaultGemstoneId;
+  setShape(r.defaultShapeId);
+  if (r.custom) { state.lengthMm = r.spec.stone.lengthMm; state.widthMm = r.spec.stone.widthMm; }  // the stone it was designed for
+}
+function setShape(id) {
+  const s = shapeDef(id);
+  state.shapeId = id;
+  state.lengthMm = s.defaultLengthMm;
+  state.widthMm = s.defaultWidthMm;
+  state.seat = { x: 0, y: 0, z: 0 };
+}
+const depthMm = () => state.widthMm * depthRatio(state.shapeId);
+
+function caratEstimate() {
+  const L = state.lengthMm, W = state.widthMm, D = depthMm(), k = CARAT_K[state.shapeId];
+  const base = state.shapeId === "round" || state.shapeId === "oval" ? ((L + W) / 2) ** 2 * D * k : L * W * D * k;
+  return base * (SG[state.gemId] / 3.52);
+}
+
+// ------------------------------------------------------------------------------------------ fit rules
+// Mirrors the Unity GemstoneFitManager design: predefined per-mount compatibility, no "everything fits".
+function checkFit() {
+  const r = ring(), m = centerMount(r), s = shapeDef(), g = gemDef();
+  const L = state.lengthMm, W = state.widthMm, D = depthMm();
+  const reasons = [];
+  if (!m.supportedShapes.includes(s.id)) {
+    const names = m.supportedShapes.map((id) => shapeDef(id).displayName.toLowerCase());
+    return { status: "bad", title: "Does not fit this setting", reasons: [`The ${r.displayName} setting holds ${listJoin(names)} stones only.`] };
+  }
+  if (L < m.minLengthMm) reasons.push(`Too short: ${L.toFixed(1)} mm (needs at least ${m.minLengthMm} mm).`);
+  if (L > m.maxLengthMm) reasons.push(`Too long: ${L.toFixed(1)} mm (the head takes up to ${m.maxLengthMm} mm).`);
+  if (W < m.minWidthMm) reasons.push(`Too narrow: ${W.toFixed(1)} mm (needs at least ${m.minWidthMm} mm).`);
+  if (W > m.maxWidthMm) reasons.push(`Too wide: ${W.toFixed(1)} mm (the head takes up to ${m.maxWidthMm} mm).`);
+  if (D > m.maxDepthMm) reasons.push(`Too deep: ${D.toFixed(2)} mm total depth (maximum ${m.maxDepthMm} mm).`);
+  if (reasons.length) return { status: "bad", title: "Does not fit this setting", reasons };
+  const near = [];
+  const margin = 0.25;
+  if (L - m.minLengthMm < margin || m.maxLengthMm - L < margin) near.push("Length is at the edge of what the head can hold.");
+  if (W - m.minWidthMm < margin || m.maxWidthMm - W < margin) near.push("Width is at the edge of what the head can hold.");
+  if (m.maxDepthMm - D < margin) near.push("Pavilion sits very close to the band.");
+  if (g.hardnessMohs < 8 && (r.id === "solitaire" || r.id === "prong")) near.push(`${g.displayName} (${g.hardnessMohs} Mohs) is softer than corundum; a bezel or halo protects it better.`);
+  if (near.length) return { status: "warn", title: "Fits, with a note", reasons: near };
+  return { status: "ok", title: "Fits the setting", reasons: [] };
+}
+const listJoin = (a) => (a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
+
+// ------------------------------------------------------------------------------------------ 3D stage
+const canvas = document.getElementById("view");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.AgXToneMapping;
+renderer.toneMappingExposure = 1.15;
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.03).texture;
+
+const camera = new THREE.PerspectiveCamera(28, 1, 1, 4000);
+const HOME = { pos: new THREE.Vector3(40, 26, 72), target: new THREE.Vector3(0, 2, 0) };
+camera.position.copy(HOME.pos);
+const controls = new OrbitControls(camera, canvas);
+controls.target.copy(HOME.target);
+controls.enableDamping = true;
+controls.minDistance = 16;
+controls.maxDistance = 420;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.9;
+controls.addEventListener("start", () => setAutoRotate(false));
+
+const key = new THREE.SpotLight(0xffe2bd, 3.2, 0, Math.PI / 7, 0.6, 0);
+key.position.set(20, 160, 60);
+scene.add(key, key.target);
+scene.add(new THREE.HemisphereLight(0xfff1dd, 0x120e10, 0.35));
+
+// Display stand: black lacquer plinth, gold rim, burgundy velvet cushion.
+const stand = new THREE.Group();
+const lacquer = new THREE.MeshPhysicalMaterial({ color: 0x0b0b0d, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.08 });
+const goldTrim = new THREE.MeshStandardMaterial({ color: 0xc9a45c, metalness: 1, roughness: 0.22 });
+const velvet = new THREE.MeshStandardMaterial({ color: 0x1f070e, roughness: 1 });
+const plinth = new THREE.Mesh(new THREE.CylinderGeometry(26, 28, 10, 72), lacquer);
+plinth.position.y = -11.4 - 5;
+const rim = new THREE.Mesh(new THREE.TorusGeometry(26, 0.5, 12, 96), goldTrim);
+rim.rotation.x = Math.PI / 2; rim.position.y = -11.4;
+const cushion = new THREE.Mesh(new THREE.CylinderGeometry(14, 14.6, 1.2, 64), velvet);
+cushion.position.y = -10.8;
+stand.add(plinth, rim, cushion);
+scene.add(stand);
+
+const pivot = new THREE.Group();      // wearable orientation is applied here
+scene.add(pivot);
+// Simulated left hand (Blender: voxel-fused anatomy, baked skin tones, fitted nails). Loaded on first use.
+// Its RingAnchor_RingFinger sits at the ring's origin, so the ring lands on the ring finger, stone on top.
+const finger = new THREE.Group();
+finger.name = "SimulatedHand";
+finger.visible = false;
+pivot.add(finger);
+let handLoad = null;
+function ensureHand() {
+  if (!handLoad) {
+    handLoad = loadModel("models/SimulatedHand_L.json").then((gltf) => {
+      const hand = gltf.scene;
+      hand.scale.setScalar(1000);   // metres -> stage millimetres
+      const skin = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.5, sheen: 0.6, sheenColor: 0xffb39a,
+        sheenRoughness: 0.5, clearcoat: 0.04, clearcoatRoughness: 0.4, envMapIntensity: 0.85 });
+      const nail = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.06 });
+      hand.traverse((o) => { if (o.isMesh) o.material = o.name.startsWith("Hand_Nails") ? nail : skin; });
+      hand.updateMatrixWorld(true);
+      const anchor = hand.getObjectByName("RingAnchor_RingFinger");
+      if (anchor) {
+        const p = new THREE.Vector3(); anchor.getWorldPosition(p);
+        hand.position.sub(p);
+      }
+      finger.add(hand);
+    });
+  }
+  return handLoad;
+}
+
+const loader = new GLTFLoader();
+
+// Models ship as glTF JSON with the geometry embedded as base64. GLTFLoader would fetch() that data: URL,
+// which the artifact host's Content-Security-Policy (connect-src 'self') refuses. So: fetch the JSON from
+// our own origin, decode the buffer here, pack an in-memory GLB and parse it - no second network request.
+// The published page is built by Tools/bundle_interface.py with every model, data file and thumbnail inline
+// (window.GX_BUNDLE), so it makes no file requests at all - some browsers (e.g. Safari) can't fetch an
+// embedded page's side files. The development copy has no bundle and loads the files normally.
+const BUNDLE = window.GX_BUNDLE || null;
+const bundled = (kind, path) => (BUNDLE && BUNDLE[kind] && Object.prototype.hasOwnProperty.call(BUNDLE[kind], path) ? BUNDLE[kind][path] : undefined);
+const assetUrl = (path) => bundled("images", path) || path;
+async function getJSON(path) {
+  const inline = bundled("data", path);
+  if (inline !== undefined) return inline;
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+  return res.json();
+}
+function base64ToBuffer(b64) {
+  const raw = atob(b64), out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out.buffer;
+}
+
+async function loadModel(url) {
+  const inlineGlb = bundled("models", url);
+  if (inlineGlb !== undefined) return new Promise((resolve, reject) => loader.parse(base64ToBuffer(inlineGlb), "", resolve, reject));
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  const doc = await res.json();
+  const uri = doc.buffers[0].uri;
+  const raw = atob(uri.slice(uri.indexOf(",") + 1));
+  const bin = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
+  delete doc.buffers[0].uri;
+  doc.buffers[0].byteLength = bin.length;
+  const enc = new TextEncoder();
+  let json = enc.encode(JSON.stringify(doc));
+  const jsonPad = (4 - (json.length % 4)) % 4, binPad = (4 - (bin.length % 4)) % 4;
+  const total = 12 + 8 + json.length + jsonPad + 8 + bin.length + binPad;
+  const glb = new ArrayBuffer(total);
+  const view = new DataView(glb), bytes = new Uint8Array(glb);
+  view.setUint32(0, 0x46546c67, true); view.setUint32(4, 2, true); view.setUint32(8, total, true);   // "glTF", v2
+  view.setUint32(12, json.length + jsonPad, true); view.setUint32(16, 0x4e4f534a, true);              // JSON chunk
+  bytes.set(json, 20); bytes.fill(0x20, 20 + json.length, 20 + json.length + jsonPad);
+  const binStart = 20 + json.length + jsonPad;
+  view.setUint32(binStart, bin.length + binPad, true); view.setUint32(binStart + 4, 0x004e4942, true); // BIN chunk
+  bytes.set(bin, binStart + 8);
+  return new Promise((resolve, reject) => loader.parse(glb, "", resolve, reject));
+}
+const ringCache = {}, gemGeo = {};
+let ringRoot = null, headScaler = null, centerGem = null, sideGems = [], metalMat, accentMat, gemMat;
+
+function makeMetal() { return new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 1, roughness: 0.08, envMapIntensity: 1.25 }); }
+function makeGem() {
+  return new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0, roughness: 0, transmission: 1, thickness: 0.0008,
+    ior: 1.77, specularIntensity: 1, envMapIntensity: 1.6, flatShading: true });
+}
+metalMat = makeMetal();
+gemMat = makeGem();
+accentMat = makeGem();
+accentMat.color.set(0xffffff); accentMat.ior = 2.333; accentMat.dispersion = 3;
+
+function styleGem(mat, g) {
+  const c = new THREE.Color(g.colorHex);
+  const isClear = g.id === "diamond";
+  mat.color.copy(isClear ? new THREE.Color(0xffffff) : c.clone().lerp(new THREE.Color(0xffffff), 0.45));
+  mat.attenuationColor.copy(isClear ? new THREE.Color(0xffffff) : c);
+  mat.attenuationDistance = isClear ? Infinity : 3.6;
+  mat.ior = Math.min(g.refractiveIndex, 2.333);   // three.js caps IOR at 2.333 (diamond is 2.42)
+  mat.dispersion = isClear ? 3.5 : 0.8;
+  mat.needsUpdate = true;
+}
+
+// ------------------------------------------------------------------------------------------ ring generator
+// JavaScript port of Blender/Scripts/gx_rings.py (+ the cut outlines from gx_gems.py): the same rules, part
+// names and mount conventions, so one ring spec gives the same setting here and in Blender (build_custom.py).
+// Geometry is built in Blender axes and millimetres (Z up, finger along Y) and written out in glTF axes and
+// METRES, exactly like the exported GLB rings, so the rest of the stage treats custom and catalogue rings alike.
+const GEN = (() => {
+  const TAU = Math.PI * 2;
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const mul = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const unit = (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+  const linspace = (a, b, n) => Array.from({ length: n }, (_, i) => (n === 1 ? a : a + ((b - a) * i) / (n - 1)));
+
+  // --- girdle outlines, normalised to width 1 and length = aspect, centred on their bounding box
+  class Outline {
+    constructor(fn, aspect, samples = 720) {
+      this.fn = fn; this.aspect = aspect;
+      const lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
+      for (let i = 0; i < samples; i++) {
+        const p = fn((TAU * i) / samples);
+        lo[0] = Math.min(lo[0], p[0]); lo[1] = Math.min(lo[1], p[1]); hi[0] = Math.max(hi[0], p[0]); hi[1] = Math.max(hi[1], p[1]);
+      }
+      this.c = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2];
+      this.s = [1 / (hi[0] - lo[0]), aspect / (hi[1] - lo[1])];
+    }
+    point(t) { const p = this.fn(t); return [(p[0] - this.c[0]) * this.s[0], (p[1] - this.c[1]) * this.s[1]]; }
+    normal(t, h = 1e-4) {
+      const p = this.point(t), a = this.point(t + h), b = this.point(t - h);
+      let n = [a[1] - b[1], -(a[0] - b[0])];
+      if (Math.hypot(n[0], n[1]) < 1e-12) n = p.slice();
+      const l = Math.hypot(n[0], n[1]);
+      n = [n[0] / l, n[1] / l];
+      return n[0] * p[0] + n[1] * p[1] >= 0 ? n : [-n[0], -n[1]];
+    }
+  }
+  const circle = (t) => [Math.cos(t), Math.sin(t)];
+  const superellipse = (e) => (t) => { const c = Math.cos(t), s = Math.sin(t), p = 2 / e; return [Math.sign(c) * Math.abs(c) ** p, Math.sign(s) * Math.abs(s) ** p]; };
+  const teardrop = (t) => [Math.sin(t) * Math.abs(Math.sin(t / 2)), -Math.cos(t)];
+  const chamfered = (w, l, c) => { const W = w / 2, L = l / 2; return [[W, -L + c], [W, L - c], [W - c, L], [-W + c, L], [-W, L - c], [-W, -L + c], [-W + c, -L], [W - c, -L]]; };
+  const polygonFn = (poly) => (t) => {
+    const d = [Math.cos(t), Math.sin(t)];
+    let best = null;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length], e = [b[0] - a[0], b[1] - a[1]];
+      const det = d[0] * -e[1] - -e[0] * d[1];
+      if (Math.abs(det) < 1e-12) continue;
+      const r = (a[0] * -e[1] - -e[0] * a[1]) / det, u = (d[0] * a[1] - d[1] * a[0]) / det;
+      if (r > 0 && u >= -1e-9 && u <= 1 + 1e-9 && (best === null || r < best)) best = r;
+    }
+    return [d[0] * best, d[1] * best];
+  };
+  const FACTORY = {
+    round: () => new Outline(circle, 1), oval: () => new Outline(circle, 8 / 6), cushion: () => new Outline(superellipse(3.4), 1),
+    pear: () => new Outline(teardrop, 1.5), emerald: () => new Outline(polygonFn(chamfered(1, 1.4, 0.15)), 1.4),
+    princess: () => new Outline(polygonFn(chamfered(1, 1, 0.03)), 1),
+  };
+  const outlines = {};
+  const outline = (cut) => outlines[cut] || (outlines[cut] = FACTORY[cut]());
+
+  class GemSpec {
+    constructor(cut, L, W, cuts) {
+      const info = cuts[cut];
+      this.cut = cut; this.length = L; this.width = W;
+      this.depth = W * info.depth_ratio; this.crown = this.depth * info.crown_fraction; this.pavilion = this.depth * info.pavilion_fraction;
+      this.o = outline(cut); this.sx = W; this.sy = L / this.o.aspect;
+    }
+    scaled(p, n) {
+      const nn = [n[0] / this.sx, n[1] / this.sy], l = Math.hypot(nn[0], nn[1]);
+      return [[p[0] * this.sx, p[1] * this.sy], [nn[0] / l, nn[1] / l]];
+    }
+    at(azDeg) {
+      const target = (azDeg * Math.PI) / 180;
+      let bestT = 0, bestD = Infinity;
+      for (let i = 0; i < 720; i++) {
+        const t = (TAU * i) / 720, p = this.o.point(t);
+        const d = Math.abs(((((Math.atan2(p[1], p[0]) - target + Math.PI) % TAU) + TAU) % TAU) - Math.PI);
+        if (d < bestD) { bestD = d; bestT = t; }
+      }
+      return this.scaled(this.o.point(bestT), this.o.normal(bestT));
+    }
+    loop(n = 96) {
+      const pts = [], nrm = [];
+      for (let i = 0; i < n; i++) { const t = (TAU * i) / n; const [p, q] = this.scaled(this.o.point(t), this.o.normal(t)); pts.push(p); nrm.push(q); }
+      return [pts, nrm];
+    }
+  }
+
+  // --- mesh building: closed parts are oriented outward by signed volume, then merged
+  class MB {
+    constructor() { this.v = []; this.f = []; }
+    add(part) {
+      let vol = 0;
+      for (const f of part.f) for (let k = 1; k + 1 < f.length; k++) vol += dot(part.v[f[0]], cross(part.v[f[k]], part.v[f[k + 1]]));
+      const base = this.v.length;
+      for (const p of part.v) this.v.push(p);
+      for (const f of part.f) this.f.push((vol < 0 ? f.slice().reverse() : f).map((i) => i + base));
+      return this;
+    }
+    geometry() {
+      const pos = new Float32Array(this.v.length * 3);
+      this.v.forEach((p, i) => { pos[i * 3] = p[0] * 0.001; pos[i * 3 + 1] = p[2] * 0.001; pos[i * 3 + 2] = -p[1] * 0.001; });
+      const idx = [];
+      for (const f of this.f) for (let k = 1; k + 1 < f.length; k++) idx.push(f[0], f[k], f[k + 1]);
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      g.setIndex(idx);
+      g.computeVertexNormals();
+      return g;
+    }
+  }
+  const gltfPos = (p) => new THREE.Vector3(p[0] * 0.001, p[2] * 0.001, -p[1] * 0.001);
+
+  function catmull(points, n = 8) {
+    const p = points, last = p.length - 1;
+    const ext = [sub(mul(p[0], 2), p[1]), ...p, sub(mul(p[last], 2), p[last - 1])];
+    const out = [];
+    for (let i = 1; i < ext.length - 2; i++) {
+      const [p0, p1, p2, p3] = [ext[i - 1], ext[i], ext[i + 1], ext[i + 2]];
+      for (let s = 0; s < n; s++) {
+        const t = s / n, t2 = t * t, t3 = t2 * t;
+        out.push([0, 1, 2].map((k) => 0.5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3)));
+      }
+    }
+    out.push(p[last].slice());
+    return out;
+  }
+  function frames(path, closed) {
+    const n = path.length, T = [], N = [];
+    for (let i = 0; i < n; i++) {
+      const a = closed || i > 0 ? path[(i - 1 + n) % n] : path[i];
+      const b = closed || i < n - 1 ? path[(i + 1) % n] : path[i];
+      T.push(unit(sub(b, a)));
+    }
+    const ref = Math.abs(T[0][2]) < 0.9 ? [0, 0, 1] : [1, 0, 0];
+    N[0] = unit(cross(cross(T[0], ref), T[0]));
+    for (let i = 0; i < n - 1; i++) {
+      const v1 = sub(path[i + 1], path[i]), c1 = dot(v1, v1);
+      if (c1 < 1e-18) { N[i + 1] = N[i]; continue; }
+      const rl = sub(N[i], mul(v1, (2 / c1) * dot(v1, N[i]))), tl = sub(T[i], mul(v1, (2 / c1) * dot(v1, T[i])));
+      const v2 = sub(T[i + 1], tl), c2 = dot(v2, v2);
+      N[i + 1] = unit(c2 > 1e-18 ? sub(rl, mul(v2, (2 / c2) * dot(v2, rl))) : rl);
+    }
+    return [T, N, T.map((t, i) => cross(t, N[i]))];
+  }
+  function tube(path, radii, seg = 12, closed = false, caps = true) {
+    const n = path.length, R = typeof radii === "number" ? Array(n).fill(radii) : radii;
+    const [, N, B] = frames(path, closed), v = [], f = [];
+    for (let i = 0; i < n; i++) for (let s = 0; s < seg; s++) {
+      const a = (TAU * s) / seg;
+      v.push(add(path[i], add(mul(N[i], R[i] * Math.cos(a)), mul(B[i], R[i] * Math.sin(a)))));
+    }
+    for (let i = 0; i < (closed ? n : n - 1); i++) {
+      const j = (i + 1) % n;
+      for (let s = 0; s < seg; s++) { const s2 = (s + 1) % seg; f.push([i * seg + s, i * seg + s2, j * seg + s2, j * seg + s]); }
+    }
+    if (caps && !closed) {
+      v.push(path[0].slice());
+      let c = v.length - 1;
+      for (let s = 0; s < seg; s++) f.push([c, (s + 1) % seg, s]);
+      v.push(path[n - 1].slice());
+      c = v.length - 1;
+      const st = (n - 1) * seg;
+      for (let s = 0; s < seg; s++) f.push([c, st + s, st + ((s + 1) % seg)]);
+    }
+    return { v, f };
+  }
+  function sphere(c, r, u = 12, vv = 8) {
+    const v = [add(c, [0, 0, r])], f = [];
+    for (let i = 1; i < vv; i++) {
+      const th = (Math.PI * i) / vv;
+      for (let j = 0; j < u; j++) { const ph = (TAU * j) / u; v.push(add(c, mul([Math.sin(th) * Math.cos(ph), Math.sin(th) * Math.sin(ph), Math.cos(th)], r))); }
+    }
+    v.push(add(c, [0, 0, -r]));
+    for (let j = 0; j < u; j++) f.push([0, 1 + j, 1 + ((j + 1) % u)]);
+    for (let i = 0; i < vv - 2; i++) for (let j = 0; j < u; j++) { const a = 1 + i * u + j, b = 1 + i * u + ((j + 1) % u); f.push([a, a + u, b + u, b]); }
+    const last = v.length - 1, base = 1 + (vv - 2) * u;
+    for (let j = 0; j < u; j++) f.push([last, base + ((j + 1) % u), base + j]);
+    return { v, f };
+  }
+  function sweepClosed(pts, nrm, profile) {
+    const m = pts.length, k = profile.length, v = [], f = [];
+    for (let i = 0; i < m; i++) for (const [off, z] of profile) v.push([pts[i][0] + nrm[i][0] * off, pts[i][1] + nrm[i][1] * off, z]);
+    for (let i = 0; i < m; i++) for (let j = 0; j < k; j++) {
+      const i2 = (i + 1) % m, j2 = (j + 1) % k;
+      f.push([i * k + j, i2 * k + j, i2 * k + j2, i * k + j2]);
+    }
+    return { v, f };
+  }
+
+  // --- parts (see gx_rings.py for the design notes)
+  function band(innerD, width, thick, segs = 128, prof = 22, exponent = 3.2) {
+    const r0 = innerD / 2, e = 2 / exponent, v = [], f = [];
+    for (let i = 0; i < segs; i++) {
+      const phi = (TAU * i) / segs, top = ((1 + Math.cos(phi)) / 2) ** 2;
+      const w = width * (0.9 + 0.25 * top), th = thick * (0.9 + 0.22 * top);
+      for (let j = 0; j < prof; j++) {
+        const s = (TAU * j) / prof, c = Math.cos(s), sn = Math.sin(s);
+        const u = (w / 2) * Math.sign(c) * Math.abs(c) ** e, r = r0 + th / 2 + (th / 2) * Math.sign(sn) * Math.abs(sn) ** e;
+        v.push([r * Math.sin(phi), u, r * Math.cos(phi)]);
+      }
+    }
+    for (let i = 0; i < segs; i++) for (let j = 0; j < prof; j++) {
+      const i2 = (i + 1) % segs, j2 = (j + 1) % prof;
+      f.push([i * prof + j, i2 * prof + j, i2 * prof + j2, i * prof + j2]);
+    }
+    return { v, f, top: r0 + thick * 1.12 };
+  }
+  function prongHead(spec, azimuths, baseZ, prongR = 0.45, tipLean = 0.3) {
+    const mb = new MB();
+    for (const az of azimuths) {
+      const [p, n] = spec.at(az), rad = Math.hypot(p[0], p[1]), u = [p[0] / rad, p[1] / rad], k = Math.min(1.2, rad * 0.25);
+      const path = catmull([
+        [u[0] * k, u[1] * k, baseZ],
+        [p[0] * 0.5, p[1] * 0.5, -spec.pavilion * 0.88],
+        [p[0] * 0.86 + n[0] * prongR * 0.9, p[1] * 0.86 + n[1] * prongR * 0.9, -spec.pavilion * 0.42],
+        [p[0] + n[0] * prongR * 0.75, p[1] + n[1] * prongR * 0.75, 0],
+        [p[0] - u[0] * tipLean + n[0] * prongR * 0.2, p[1] - u[1] * tipLean + n[1] * prongR * 0.2, spec.crown * 0.55 + prongR * 0.35],
+      ], 8);
+      mb.add(tube(path, linspace(prongR * 1.15, prongR * 0.92, path.length), 12));
+      mb.add(sphere(path[path.length - 1], prongR, 14, 10));
+    }
+    const [pts, nrm] = spec.loop(96);
+    for (const [df, sc, push, r] of [[0.42, 0.86, prongR * 0.9, prongR * 0.72], [0.86, 0.5, 0, prongR * 0.62]]) {
+      mb.add(tube(pts.map((p, i) => [p[0] * sc + nrm[i][0] * push, p[1] * sc + nrm[i][1] * push, -spec.pavilion * df]), r, 10, true));
+    }
+    return mb;
+  }
+  function halo(spec, baseZ, accentSize, cuts, gap = 0.14, clearance = 0.35) {
+    const [pts, nrm] = spec.loop(240), off = clearance + accentSize / 2;
+    const path = pts.map((p, i) => [p[0] + nrm[i][0] * off, p[1] + nrm[i][1] * off]);
+    const seg = path.map((p, i) => { const q = path[(i + 1) % path.length]; return Math.hypot(q[0] - p[0], q[1] - p[1]); });
+    const per = seg.reduce((a, b) => a + b, 0), count = Math.floor(per / (accentSize + gap));
+    const cum = [0];
+    for (const s of seg) cum.push(cum[cum.length - 1] + s);
+    const at = (d) => {
+      d = ((d % per) + per) % per;
+      let k = 0;
+      while (k < seg.length - 1 && cum[k + 1] <= d) k++;
+      const f = (d - cum[k]) / Math.max(seg[k], 1e-9), a = path[k], b = path[(k + 1) % path.length], na = nrm[k], nb = nrm[(k + 1) % nrm.length];
+      const nn = [na[0] * (1 - f) + nb[0] * f, na[1] * (1 - f) + nb[1] * f], l = Math.hypot(nn[0], nn[1]);
+      return [[a[0] * (1 - f) + b[0] * f, a[1] * (1 - f) + b[1] * f], [nn[0] / l, nn[1] / l]];
+    };
+    const accent = new GemSpec("round", accentSize, accentSize, cuts), zAcc = -0.3, step = per / count;
+    const centres = Array.from({ length: count }, (_, i) => at(i * step)[0]);
+    const mb = new MB(), half = accentSize / 2 + 0.22, bottom = zAcc - accent.pavilion - 0.15, top = zAcc - 0.06;
+    mb.add(sweepClosed(pts, nrm, [[off - half, bottom + 0.1], [off - half + 0.1, bottom], [off + half - 0.1, bottom], [off + half, bottom + 0.1], [off + half, top], [off - half, top]]));
+    for (let i = 0; i < count; i++) {
+      const [c, n] = at((i + 0.5) * step);
+      for (const side of [-1, 1]) mb.add(sphere([c[0] + n[0] * side * (accentSize / 2 + 0.02), c[1] + n[1] * side * (accentSize / 2 + 0.02), zAcc + 0.08], 0.2, 8, 6));
+    }
+    for (const az of [45, 135, 225, 315]) {
+      const [p, n] = spec.at(az), rad = Math.hypot(p[0], p[1]);
+      const start = [p[0] + n[0] * off, p[1] + n[1] * off, bottom + 0.05], end = [(p[0] / rad) * 1.4, (p[1] / rad) * 1.4, baseZ];
+      const mid = [(start[0] + end[0]) / 2 + n[0] * 0.5, (start[1] + end[1]) / 2 + n[1] * 0.5, (start[2] + end[2]) / 2];
+      mb.add(tube(catmull([start, mid, end], 8), linspace(0.42, 0.55, 17), 10));
+    }
+    return { mb, centres, zAcc, accent };
+  }
+  function bezelCup(spec, baseZ) {
+    const [pts, nrm] = spec.loop(160), mb = new MB();
+    mb.add(sweepClosed(pts, nrm, [[0.05, -1.35], [0.05, 0.22], [-0.12, 0.33], [0.15, 0.46], [0.75, 0.3], [0.8, -1.45], [0.45, -1.95], [-0.25, -1.95]]));
+    for (let az = 0; az < 360; az += 60) {
+      const [p, n] = spec.at(az + 30), rad = Math.hypot(p[0], p[1]);
+      const start = [p[0] + n[0] * 0.2, p[1] + n[1] * 0.2, -1.85], end = [(p[0] / rad) * 1.2, (p[1] / rad) * 1.2, baseZ];
+      mb.add(tube(catmull([start, add(mul(add(start, end), 0.5), [0, 0, -0.2]), end], 8), linspace(0.5, 0.6, 17), 10));
+    }
+    return mb;
+  }
+  function cathedralArches(spec, mountZ, innerR, thick) {
+    const mb = new MB(), rIn = innerR + thick * 0.55;
+    for (const side of [-1, 1]) {
+      const [p] = spec.at(side > 0 ? 0 : 180);
+      for (const y of [-1, 1]) {
+        const phi = (36 * Math.PI / 180) * side;
+        const start = [rIn * Math.sin(phi), y * 0.6, rIn * Math.cos(phi)];
+        const rise = [rIn * 1.08 * Math.sin(phi * 0.82), y * 0.6, rIn * 1.08 * Math.cos(phi * 0.82)];
+        const end = [p[0] * 0.72, y * 0.5, mountZ - spec.pavilion * 0.45];
+        const crest = [(rise[0] + end[0]) * 0.5 + side * 0.85, y * 0.56, (rise[2] + end[2]) * 0.5 + 0.55];
+        const path = catmull([start, rise, crest, end], 10);
+        mb.add(tube(path, linspace(0.52, 0.34, path.length), 14));
+      }
+    }
+    return mb;
+  }
+
+  const HEAD = { low: 0.45, medium: 1.0, high: 1.6 };
+  const PRONGS = { 4: [45, 135, 225, 315], 6: [0, 60, 120, 180, 240, 300], 8: [22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5] };
+  const PLACEHOLDER = new THREE.MeshStandardMaterial();
+  const mesh = (name, mb) => { const m = new THREE.Mesh(mb.geometry(), PLACEHOLDER); m.name = name; return m; };
+
+  /** Builds a ring setting (no centre stone) from a ring spec. `roundGeo` is the unit round-cut geometry for accents. */
+  function build(spec, cuts, roundGeo) {
+    const root = new THREE.Group();
+    root.name = "Ring_Custom";
+    const innerD = spec.innerDiameterMm || 17.3;
+    const b = band(innerD, spec.bandWidthMm, spec.bandThicknessMm);
+    root.add(mesh("Band", new MB().add(b)));
+    const st = spec.stone, center = new GemSpec(st.shapeId, st.lengthMm, st.widthMm, cuts);
+    const mountZ = b.top + (HEAD[spec.headHeight] ?? 1.0) + center.pavilion, baseZ = b.top - mountZ - 0.35;
+    const mount = new THREE.Group();
+    mount.name = "GemMount_Center";
+    mount.position.copy(gltfPos([0, 0, mountZ]));
+    root.add(mount);
+    const info = { accentStones: 0, accentSizeMm: 0 };
+    if (spec.style === "bezel") {
+      mount.add(mesh("Bezel", bezelCup(center, baseZ)));
+    } else if (spec.style === "halo") {
+      mount.add(mesh("Head_Center", prongHead(center, PRONGS[4], baseZ, 0.36, 0.25)));
+      const a = spec.halo?.accentSizeMm ?? 1.3, h = halo(center, baseZ, a, cuts);
+      mount.add(mesh("Halo_Frame", h.mb));
+      h.centres.forEach((c, i) => {
+        const g = new THREE.Mesh(roundGeo, PLACEHOLDER);
+        g.name = `Accent_${String(i).padStart(2, "0")}`;
+        g.scale.set(a, h.accent.depth, a);
+        g.position.copy(gltfPos([c[0], c[1], h.zAcc]));
+        mount.add(g);
+      });
+      Object.assign(info, { accentStones: h.centres.length, accentSizeMm: a });
+    } else {
+      const az = PRONGS[spec.prongs] || PRONGS[4];
+      mount.add(mesh("Head_Center", prongHead(center, az, baseZ, az.length === 4 ? 0.45 : 0.4)));
+      if (spec.style === "three_stone") {
+        const size = spec.sideStones?.sizeMm ?? 4, side = new GemSpec("round", size, size, cuts);
+        for (const [id, sign] of [["SideL", 1], ["SideR", -1]]) {
+          const x = sign * (center.width / 2 + size / 2 + 1.1), tilt = 14 * sign, z = mountZ - 1.2;
+          const sm = new THREE.Group();
+          sm.name = `GemMount_${id}`;
+          sm.position.copy(gltfPos([x, 0, z]));
+          sm.rotation.z = (-tilt * Math.PI) / 180;   // Blender Ry(+a) == glTF Rz(-a)
+          const bandBelow = Math.sqrt(Math.max(b.top ** 2 - (Math.abs(x) * 0.85) ** 2, 0)) - 0.4;
+          sm.add(mesh(`Head_${id}`, prongHead(side, PRONGS[4], -(z - bandBelow) / Math.cos((14 * Math.PI) / 180), 0.33, 0.18)));
+          root.add(sm);
+        }
+      }
+      if (spec.cathedral) root.add(mesh("Cathedral", cathedralArches(center, mountZ, innerD / 2, spec.bandThicknessMm)));
+    }
+    return { root, info };
+  }
+
+  return { build, GemSpec };
+})();
+
+async function loadGemGeometry(shapeId) {
+  if (gemGeo[shapeId]) return gemGeo[shapeId];
+  const gltf = await loadModel(`models/${GEM_FILES[shapeId]}.json`);
+  let mesh = null;
+  gltf.scene.traverse((o) => { if (o.isMesh && !mesh) mesh = o; });
+  gemGeo[shapeId] = mesh.geometry;
+  return mesh.geometry;
+}
+
+async function loadRing(id) {
+  const r = ringById(id);
+  let root;
+  if (r.custom) {
+    const built = GEN.build(r.spec, META.gemCuts, await loadGemGeometry("round"));
+    customInfo[r.id] = built.info;
+    root = built.root;
+  } else {
+    if (!ringCache[id]) ringCache[id] = await loadModel(`models/${RING_FILES[id]}.json`);
+    root = ringCache[id].scene.clone(true);
+  }
+  if (ringRoot) pivot.remove(ringRoot);
+  ringRoot = root;
+  ringRoot.scale.setScalar(1000);   // rings are in metres (GLB and generator alike); the stage works in millimetres
+  const metalPrefixes = r.metalRendererPrefixes, accentPrefixes = r.accentStoneRendererPrefixes || [];
+  ringRoot.traverse((o) => {
+    if (!o.isMesh) return;
+    const n = o.name;
+    if (accentPrefixes.some((p) => n.startsWith(p))) o.material = accentMat;
+    else if (metalPrefixes.some((p) => n.startsWith(p))) o.material = metalMat;
+  });
+  // Wrap the centre head so it can follow the stone's footprint (the stone itself is a sibling).
+  const mount = ringRoot.getObjectByName("GemMount_Center");
+  headScaler = new THREE.Group();
+  headScaler.name = "HeadScaler";
+  [...mount.children].forEach((c) => headScaler.add(c));
+  mount.add(headScaler);
+  centerGem = new THREE.Mesh(await loadGemGeometry(state.shapeId), gemMat);
+  centerGem.name = "CenterGem";
+  mount.add(centerGem);
+  // Fixed side stones (three-stone)
+  sideGems = [];
+  for (const m of r.mounts.filter((x) => x.role === "side" && x.fixedShapeId)) {
+    const node = ringRoot.getObjectByName(`GemMount_${m.id}`);
+    if (!node) continue;
+    const g = new THREE.Mesh(await loadGemGeometry(m.fixedShapeId), accentMat);
+    const L = m.fixedLengthMm;
+    g.scale.set(L, L * depthRatio(m.fixedShapeId), L);
+    node.add(g);
+    sideGems.push(g);
+  }
+  pivot.add(ringRoot);
+}
+
+let loadedRingId = null, loadedShapeId = null;
+async function syncStage(forceRing = false) {
+  if (forceRing || loadedRingId !== state.ringId) { await loadRing(state.ringId); loadedRingId = state.ringId; loadedShapeId = state.shapeId; }
+  if (loadedShapeId !== state.shapeId) { centerGem.geometry = await loadGemGeometry(state.shapeId); loadedShapeId = state.shapeId; }
+  const m = metalDef(), g = gemDef();
+  metalMat.color.set(m.colorHex);
+  metalMat.roughness = Math.max(0.04, (1 - m.smoothness) * 0.6);
+  styleGem(gemMat, g);
+  const head = headDefaults(ring());
+  headScaler.scale.set(state.widthMm / head.W, 1, state.lengthMm / head.L);
+  centerGem.scale.set(state.widthMm, depthMm(), state.lengthMm);
+  centerGem.position.set(state.seat.x * 0.001, state.seat.y * 0.001, state.seat.z * 0.001);
+  refreshHud();
+}
+
+function refreshHud() {
+  const r = ring(), g = gemDef(), s = shapeDef(), m = metalDef(), f = checkFit();
+  document.getElementById("capTitle").textContent = r.displayName;
+  document.getElementById("capSpec").textContent =
+    `${g.displayName} · ${s.displayName} ${state.lengthMm.toFixed(1)} × ${state.widthMm.toFixed(1)} × ${depthMm().toFixed(2)} mm · ${m.displayName}`;
+  const chip = document.getElementById("fitChip");
+  chip.className = `fit ${f.status}`;
+  chip.textContent = f.status === "bad" ? `Does not fit: ${f.reasons[0].split(":")[0].replace(/\.$/, "")}` : f.title;
+  gemMat.emissive.set(f.status === "bad" ? 0x5a0d0d : 0x000000);
+}
+
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas);
+
+// camera tweening
+let tween = null;
+function flyTo(pos, target, ms = 700) {
+  tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1: pos.clone(), t1: target.clone(), start: performance.now(), ms };
+}
+function setAutoRotate(on) { controls.autoRotate = on; document.getElementById("tRotate").setAttribute("aria-pressed", String(on)); }
+
+// wearable simulation
+const wear = { connected: false, auto: true, yaw: 0, pitch: 0, roll: 0, zero: { yaw: 0, pitch: 0, roll: 0 }, battery: 87, last: null, packet: null };
+const clock = new THREE.Clock();
+function tick() {
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+  if (tween) {
+    const k = Math.min((performance.now() - tween.start) / tween.ms, 1), e = 1 - Math.pow(1 - k, 3);
+    camera.position.lerpVectors(tween.p0, tween.p1, e);
+    controls.target.lerpVectors(tween.t0, tween.t1, e);
+    if (k >= 1) tween = null;
+  }
+  if (wear.connected) {
+    const prev = { yaw: wear.yaw, pitch: wear.pitch, roll: wear.roll };
+    if (wear.auto) {
+      wear.yaw = 28 * Math.sin(t * 0.45); wear.pitch = 14 * Math.sin(t * 0.33 + 1); wear.roll = 22 * Math.sin(t * 0.27 + 2);
+    }
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+      THREE.MathUtils.degToRad(wear.pitch - wear.zero.pitch), THREE.MathUtils.degToRad(wear.yaw - wear.zero.yaw),
+      THREE.MathUtils.degToRad(wear.roll - wear.zero.roll), "YXZ"));
+    pivot.quaternion.slerp(q, 1 - Math.exp(-8 * dt));
+    const noise = () => (Math.random() - 0.5) * 0.6;
+    wear.gyro = ["pitch", "yaw", "roll"].map((a) => (wear[a] - prev[a]) / Math.max(dt, 1e-3) + noise());
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(pivot.quaternion.clone().invert());
+    wear.accel = [up.x + noise() * 0.02, up.y + noise() * 0.02, up.z + noise() * 0.02];
+    if (t - (wear.last || 0) > 0.12) { wear.last = t; updateDeviceReadout(); }
+  } else {
+    pivot.quaternion.slerp(new THREE.Quaternion(), 1 - Math.exp(-6 * dt));
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+
+// toolbar
+document.getElementById("tRotate").onclick = () => setAutoRotate(!controls.autoRotate);
+const dolly = (f) => { const d = camera.position.clone().sub(controls.target).multiplyScalar(f); flyTo(controls.target.clone().add(d), controls.target, 300); };
+document.getElementById("tIn").onclick = () => dolly(0.75);
+document.getElementById("tOut").onclick = () => dolly(1.33);
+document.getElementById("tReset").onclick = resetView;
+document.getElementById("tClose").onclick = closeUp;
+document.getElementById("tFinger").onclick = () => setFinger(!finger.visible);
+function resetView() { setAutoRotate(true); flyTo(HOME.pos, HOME.target); }
+function closeUp() {
+  setAutoRotate(false);
+  const p = new THREE.Vector3(); centerGem.getWorldPosition(p);
+  flyTo(p.clone().add(new THREE.Vector3(9, 13, 17)), p);
+}
+const HAND_VIEW = { pos: new THREE.Vector3(105, 185, 205), target: new THREE.Vector3(-16, -4, 2) };
+async function setFinger(on) {
+  const btn = document.getElementById("tFinger");
+  btn.setAttribute("aria-pressed", String(on));
+  if (on) {
+    btn.disabled = true;
+    try {
+      await ensureHand();
+    } catch (err) {
+      console.error(err);
+      btn.setAttribute("aria-pressed", "false");
+      toast("The hand model could not be loaded.");
+      return;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+  finger.visible = on;
+  stand.visible = !on;
+  setAutoRotate(false);
+  flyTo(on ? HAND_VIEW.pos : HOME.pos, on ? HAND_VIEW.target : HOME.target);
+  toast(on ? "On a left ring finger, ring size 17.3 mm. In VR the ring follows your tracked hand." : "Back on the display stand.");
+  if (state.view === "inspect") show("inspect");  // keep the panel's finger button label in sync
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+// ------------------------------------------------------------------------------------------ screens
+const VIEWS = {
+  welcome: { title: "Welcome", render: viewWelcome },
+  "how-it-works": { title: "How It Works", render: viewHow },
+  showroom: { title: "The Showroom", render: viewShowroom },
+  rings: { title: "Ring Designs", render: viewRings },
+  gemstones: { title: "Gemstones", render: viewGems },
+  customise: { title: "Customise", render: viewCustomise },
+  inspect: { title: "Inspect", render: viewInspect },
+  summary: { title: "Design Summary", render: viewSummary },
+  saved: { title: "Saved Designs", render: viewSaved },
+  wearable: { title: "Wearable Device", render: viewDevice },
+  photo: { title: "From a Photo", render: viewPhoto },
+};
+const history = [];
+let navigatingBack = false;
+
+function go(view) {
+  if (!VIEWS[view] || view === state.view) return;
+  if (!navigatingBack) history.push(state.view);
+  navigatingBack = false;
+  location.hash = view;
+}
+function back() { if (!history.length) return; navigatingBack = true; const v = history.pop(); location.hash = v; }
+function home() { history.length = 0; navigatingBack = true; location.hash = "showroom"; }
+window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+document.getElementById("backBtn").onclick = back;
+document.getElementById("homeBtn").onclick = home;
+
+function show(view) {
+  if (!VIEWS[view]) view = "welcome";
+  state.view = view;
+  navigatingBack = false;
+  document.getElementById("screenTitle").textContent = VIEWS[view].title;
+  document.getElementById("backBtn").hidden = history.length === 0;
+  document.getElementById("homeBtn").hidden = view === "showroom" || view === "welcome";
+  const host = document.getElementById("screen");
+  host.innerHTML = "";
+  host.scrollTop = 0;
+  VIEWS[view].render(host);
+}
+
+const h = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content; };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const swatchStyle = (hex) => { const c = new THREE.Color(hex); const lite = c.clone().lerp(new THREE.Color(0xffffff), 0.55); const dark = c.clone().multiplyScalar(0.45);
+  return `--c1:${hex};--c2:#${lite.getHexString()};--c3:#${dark.getHexString()}`; };
+
+function viewWelcome(host) {
+  host.append(h(`<div class="stack welcome">
+    <span class="eyebrow">Welcome to</span>
+    <div class="mark">GEMXPERT</div>
+    <div class="tag">Immersive Gemstone &amp; Jewellery Studio</div>
+    <div class="rule"></div>
+    <p class="lede">Choose a ring design, fit a gemstone into its setting, adjust the cut, size and metal, then inspect the finished piece up close.</p>
+    <button class="btn primary block" data-go="showroom">Start experience</button>
+    <div class="row" style="width:100%">
+      <button class="btn" style="flex:1" data-go="how-it-works">How it works</button>
+      <button class="btn" style="flex:1" data-go="wearable">Wearable device</button>
+    </div>
+  </div>`));
+}
+
+function viewHow(host) {
+  host.append(h(`<ol class="steps">
+    <li><div><b>Choose a setting</b><span>Solitaire, halo, three-stone, six-prong cathedral or bezel.</span></div></li>
+    <li><div><b>Fit a gemstone</b><span>Blue sapphire, ruby, emerald, yellow sapphire or a diamond-style stone in six cuts. Each setting accepts only the cuts and sizes its head can hold, and tells you why when a stone does not fit.</span></div></li>
+    <li><div><b>Make it yours</b><span>Set the length and width in millimetres, nudge the stone's seat, and choose yellow, white or rose gold, or silver.</span></div></li>
+    <li><div><b>Inspect and save</b><span>Rotate, zoom, look closely at the stone, try it on a finger, compare designs and save your favourites.</span></div></li>
+  </ol>
+  <h2 class="section">Controls in this preview</h2>
+  <div class="keys">
+    <kbd>Drag</kbd><span>Rotate the ring</span>
+    <kbd>Scroll / pinch</kbd><span>Zoom</span>
+    <kbd>Right-drag</kbd><span>Pan</span>
+  </div>
+  <h2 class="section">In the headset</h2>
+  <p class="lede">Point and pull the trigger (or pinch) to select. The ring sits on your tracked ring finger, and the GemXpert wearable adds wrist rotation and gestures.</p>
+  <button class="btn primary block" data-go="showroom">Enter the showroom</button>`));
+}
+
+function viewShowroom(host) {
+  const f = checkFit();
+  host.append(h(`<p class="lede">Your current design is on the stand. Start with a setting, or go straight to the stone.</p>
+  <div class="tiles">
+    <button class="tile" data-go="rings"><b>Ring Designs</b><span>${esc(ring().displayName)}</span></button>
+    <button class="tile" data-go="photo"><b>From a Photo</b><span>Upload a ring photo and rebuild it in 3D</span></button>
+    <button class="tile" data-go="gemstones"><b>Gemstones</b><span>${esc(gemDef().displayName)}, ${esc(shapeDef().displayName)}</span></button>
+    <button class="tile" data-go="customise"><b>Customise</b><span>${state.lengthMm.toFixed(1)} × ${state.widthMm.toFixed(1)} mm · ${esc(metalDef().displayName)}</span></button>
+    <button class="tile" data-go="inspect"><b>Inspect</b><span>Close-up, finger view and compare</span></button>
+    <button class="tile" data-go="summary"><b>Design Summary</b><span>${f.status === "bad" ? "Fix the fit before saving" : "Review and save"}</span></button>
+    <button class="tile" data-go="saved"><b>Saved Designs</b><span>${loadSaved().length} saved</span></button>
+    <button class="tile" data-go="wearable"><b>Wearable Device</b><span>${wear.connected ? "Connected (simulated)" : "Not connected"}</span></button>
+  </div>`));
+}
+
+const RING_ICON = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 92 74"><rect width="92" height="74" fill="#0d0c0f"/><circle cx="46" cy="44" r="17" fill="none" stroke="#C9A45C" stroke-width="3"/><path d="M38 27 L46 15 L54 27 Z" fill="none" stroke="#E6C983" stroke-width="2"/></svg>');
+
+function viewRings(host) {
+  host.append(h(`<p class="lede">Five catalogue settings plus any you have designed from a photo. Selecting a design loads its stone and metal.</p>
+    <button class="btn block" data-go="photo">Design a ring from a photo</button>`));
+  const wrap = document.createElement("div"); wrap.className = "cards";
+  for (const r of [...CAT.rings, ...customRings]) {
+    const m = centerMount(r);
+    const img = r.custom ? (r.photo || RING_ICON) : assetUrl(`renders/${RING_FILES[r.id]}.png`);
+    wrap.append(h(`<button class="card" data-ring="${r.id}" aria-pressed="${r.id === state.ringId}">
+      <img src="${img}" alt="${esc(r.displayName)}" loading="lazy">
+      <div><b>${esc(r.displayName)}</b><span class="meta">${esc(r.settingStyle)}</span>
+      <p>${esc(r.description)}</p>
+      <p class="hint">Centre stone ${m.minLengthMm}-${m.maxLengthMm} mm long · ${m.supportedShapes.length} cuts</p></div>
+    </button>`));
+  }
+  host.append(wrap);
+  host.append(h(`<button class="btn primary block" data-go="gemstones">Choose the gemstone</button>`));
+}
+
+function viewGems(host) {
+  const m = centerMount();
+  host.append(h(`<h2 class="section">Gemstone</h2>`));
+  const list = document.createElement("div"); list.className = "gems";
+  for (const g of CAT.gemstones) {
+    list.append(h(`<button class="gem" data-gem="${g.id}" aria-pressed="${g.id === state.gemId}">
+      <span class="swatch" style="${swatchStyle(g.colorHex)}"></span>
+      <span><b>${esc(g.displayName)}</b><small>${esc(g.mineral)} · ${g.hardnessMohs} Mohs</small></span>
+      <span class="num">RI ${g.refractiveIndex.toFixed(2)}</span>
+    </button>`));
+  }
+  host.append(list);
+  host.append(h(`<h2 class="section">Cut</h2>`));
+  const grid = document.createElement("div"); grid.className = "shapes";
+  for (const s of CAT.shapes) {
+    const ok = m.supportedShapes.includes(s.id);
+    grid.append(h(`<button class="shape" data-shape="${s.id}" aria-pressed="${s.id === state.shapeId}" ${ok ? "" : "disabled"}
+      title="${ok ? esc(s.displayName) : `Not available in the ${esc(ring().displayName)} setting`}">
+      <svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">${SHAPE_ICONS[s.id]}</svg>${esc(s.displayName)}</button>`));
+  }
+  host.append(grid);
+  const unsupported = CAT.shapes.filter((s) => !m.supportedShapes.includes(s.id)).map((s) => s.displayName.toLowerCase());
+  if (unsupported.length) host.append(h(`<p class="note">The ${esc(ring().displayName)} head cannot hold ${esc(listJoin(unsupported))} stones, so those cuts are unavailable.</p>`));
+  host.append(h(`<p class="note">${esc(gemDef().description)}</p>`));
+  host.append(h(`<button class="btn primary block" data-go="customise">Customise size &amp; metal</button>`));
+}
+
+function rangeTrack(min, max, okMin, okMax) {
+  const a = ((okMin - min) / (max - min)) * 100, b = ((okMax - min) / (max - min)) * 100;
+  return `--track: linear-gradient(90deg, #4a2a2a 0%, #4a2a2a ${a}%, #2f4a3a ${a}%, #2f4a3a ${b}%, #4a2a2a ${b}%, #4a2a2a 100%)`;
+}
+
+function viewCustomise(host) {
+  const m = centerMount(), s = shapeDef();
+  const wMin = 3, wMax = 10;
+  host.append(h(`<div class="fitbox" id="fitbox"></div>
+  <h2 class="section">Stone dimensions</h2>
+  <div class="field">
+    <div class="field-top"><label for="len">Length</label><span class="val" id="lenVal"></span></div>
+    <input type="range" id="len" min="${s.minLengthMm}" max="${s.maxLengthMm}" step="0.1" value="${state.lengthMm}" style="${rangeTrack(s.minLengthMm, s.maxLengthMm, m.minLengthMm, m.maxLengthMm)}">
+    <span class="hint">Cut range ${s.minLengthMm}-${s.maxLengthMm} mm · setting holds ${m.minLengthMm}-${m.maxLengthMm} mm</span>
+  </div>
+  <div class="field">
+    <div class="field-top"><label for="wid">Width</label><span class="val" id="widVal"></span></div>
+    <input type="range" id="wid" min="${wMin}" max="${wMax}" step="0.1" value="${state.widthMm}" ${s.lockAspect ? "disabled" : ""} style="${rangeTrack(wMin, wMax, m.minWidthMm, m.maxWidthMm)}">
+    <span class="hint">${s.lockAspect ? `${esc(s.displayName)} stones are as wide as they are long` : `Setting holds ${m.minWidthMm}-${m.maxWidthMm} mm`}</span>
+  </div>
+  <dl class="spec">
+    <dt>Total depth</dt><dd class="mono" id="depthVal"></dd>
+    <dt>Estimated weight</dt><dd class="mono" id="ctVal"></dd>
+  </dl>
+  <h2 class="section">Seat position in the head</h2>
+  <div class="field">
+    <div class="field-top"><label for="seatY">Height</label><span class="val" id="seatYVal"></span></div>
+    <input type="range" id="seatY" min="${-m.adjustRangeMm.y}" max="${m.adjustRangeMm.y}" step="0.05" value="${state.seat.y}" ${m.adjustRangeMm.y ? "" : "disabled"}>
+  </div>
+  <div class="field">
+    <div class="field-top"><label for="seatX">Side to side</label><span class="val" id="seatXVal"></span></div>
+    <input type="range" id="seatX" min="${-m.adjustRangeMm.x}" max="${m.adjustRangeMm.x}" step="0.05" value="${state.seat.x}" ${m.adjustRangeMm.x ? "" : "disabled"}>
+    <span class="hint">${m.adjustRangeMm.x ? `Adjustable by up to ±${m.adjustRangeMm.x} mm in this head` : "A bezel holds the stone exactly centred"}</span>
+  </div>
+  <h2 class="section">Metal</h2>
+  <div class="metals" id="metals"></div>
+  <div class="row"><button class="btn" style="flex:1" id="addCmp">Add to compare</button><button class="btn primary" style="flex:1" data-go="inspect">Inspect</button></div>`));
+  const metals = host.querySelector("#metals");
+  for (const mt of CAT.metals) {
+    metals.append(h(`<button class="metal" data-metal="${mt.id}" aria-pressed="${mt.id === state.metalId}"><i style="--m:${mt.colorHex}"></i>${esc(mt.displayName.replace("18K ", ""))}</button>`));
+  }
+  const len = host.querySelector("#len"), wid = host.querySelector("#wid");
+  const seatY = host.querySelector("#seatY"), seatX = host.querySelector("#seatX");
+  const sync = () => {
+    state.lengthMm = +len.value;
+    state.widthMm = s.lockAspect ? state.lengthMm : +wid.value;
+    if (s.lockAspect) wid.value = state.widthMm;
+    state.seat.y = +seatY.value; state.seat.x = +seatX.value;
+    host.querySelector("#lenVal").textContent = `${state.lengthMm.toFixed(1)} mm`;
+    host.querySelector("#widVal").textContent = `${state.widthMm.toFixed(1)} mm`;
+    host.querySelector("#depthVal").textContent = `${depthMm().toFixed(2)} mm (max ${m.maxDepthMm} mm)`;
+    host.querySelector("#ctVal").textContent = `≈ ${caratEstimate().toFixed(2)} ct`;
+    host.querySelector("#seatYVal").textContent = `${state.seat.y >= 0 ? "+" : ""}${state.seat.y.toFixed(2)} mm`;
+    host.querySelector("#seatXVal").textContent = `${state.seat.x >= 0 ? "+" : ""}${state.seat.x.toFixed(2)} mm`;
+    renderFitBox(host.querySelector("#fitbox"));
+    syncStage();
+  };
+  [len, wid, seatY, seatX].forEach((el) => el.addEventListener("input", sync));
+  host.querySelector("#addCmp").onclick = addCompare;
+  sync();
+}
+
+function renderFitBox(el) {
+  const f = checkFit();
+  el.className = `fitbox ${f.status}`;
+  el.innerHTML = `<b>${esc(f.title)}</b>${f.reasons.length ? `<ul>${f.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : `<ul><li>${esc(gemDef().displayName)} ${esc(shapeDef().displayName.toLowerCase())} sits correctly in the ${esc(ring().displayName)} head.</li></ul>`}`;
+}
+
+function snapshot() { return { ringId: state.ringId, gemId: state.gemId, shapeId: state.shapeId, lengthMm: state.lengthMm, widthMm: state.widthMm, seat: { ...state.seat }, metalId: state.metalId }; }
+function restore(d) { Object.assign(state, { ...d, seat: { ...d.seat } }); syncStage(); }
+function describe(d) {
+  const r = ringById(d.ringId) || { displayName: "Removed custom design" };
+  const g = byId(CAT.gemstones, d.gemId), s = byId(CAT.shapes, d.shapeId), m = byId(CAT.metals, d.metalId);
+  return { title: `${r.displayName} · ${g.displayName}`, detail: `${s.displayName} ${d.lengthMm.toFixed(1)}×${d.widthMm.toFixed(1)} mm · ${m.displayName}`, color: g.colorHex };
+}
+function addCompare() {
+  if (state.compare.length >= 4) state.compare.shift();
+  state.compare.push(snapshot());
+  toast(`Added to compare (${state.compare.length}/4).`);
+  if (state.view === "inspect") show("inspect");
+}
+
+function viewInspect(host) {
+  host.append(h(`<p class="lede">Drag the ring to turn it, scroll to zoom, or use the controls under the stage.</p>
+  <div class="row">
+    <button class="btn" style="flex:1" id="iClose">Close-up stone</button>
+    <button class="btn" style="flex:1" id="iFinger">${finger.visible ? "Back to stand" : "Show on finger"}</button>
+  </div>
+  <div class="row">
+    <button class="btn" style="flex:1" id="iTop">Top view</button>
+    <button class="btn" style="flex:1" id="iSide">Side profile</button>
+    <button class="btn" style="flex:1" id="iReset">Reset view</button>
+  </div>
+  <h2 class="section">Compare designs</h2>
+  <div class="compare" id="cmp"></div>
+  <div class="row"><button class="btn" style="flex:1" id="iAdd">Add current design</button><button class="btn primary" style="flex:1" data-go="summary">Design summary</button></div>`));
+  host.querySelector("#iClose").onclick = closeUp;
+  host.querySelector("#iFinger").onclick = () => setFinger(!finger.visible);
+  host.querySelector("#iReset").onclick = resetView;
+  host.querySelector("#iTop").onclick = () => { setAutoRotate(false); flyTo(new THREE.Vector3(0, 70, 0.01), new THREE.Vector3(0, 10, 0)); };
+  host.querySelector("#iSide").onclick = () => { setAutoRotate(false); flyTo(new THREE.Vector3(70, 8, 0), new THREE.Vector3(0, 4, 0)); };
+  host.querySelector("#iAdd").onclick = addCompare;
+  const cmp = host.querySelector("#cmp");
+  if (!state.compare.length) cmp.append(h(`<div class="empty" style="width:100%">Add up to four designs, then tap one to switch the stand to it. Try the same setting with two different stones.</div>`));
+  state.compare.forEach((d, i) => {
+    const info = describe(d);
+    const active = JSON.stringify(d) === JSON.stringify(snapshot());
+    const b = h(`<button class="cmp ${active ? "active" : ""}" data-cmp="${i}"><span class="swatch" style="${swatchStyle(info.color)}"></span><span><b>${esc(info.title)}</b><br><span class="hint">${esc(info.detail)}</span></span></button>`);
+    cmp.append(b);
+  });
+}
+
+function viewSummary(host) {
+  const r = ring(), g = gemDef(), s = shapeDef(), m = metalDef(), f = checkFit(), cm = centerMount();
+  host.append(h(`<div class="fitbox" id="fitbox"></div>
+  <dl class="spec">
+    <dt>Ring design</dt><dd>${esc(r.displayName)}</dd>
+    <dt>Setting</dt><dd>${esc(r.settingStyle)}</dd>
+    <dt>Gemstone</dt><dd>${esc(g.displayName)} (${esc(g.mineral)})</dd>
+    <dt>Cut</dt><dd>${esc(s.displayName)}</dd>
+    <dt>Dimensions</dt><dd class="mono">${state.lengthMm.toFixed(1)} × ${state.widthMm.toFixed(1)} × ${depthMm().toFixed(2)} mm</dd>
+    <dt>Est. weight</dt><dd class="mono">≈ ${caratEstimate().toFixed(2)} ct</dd>
+    <dt>Seat offset</dt><dd class="mono">height ${state.seat.y.toFixed(2)} mm · side ${state.seat.x.toFixed(2)} mm</dd>
+    <dt>Metal</dt><dd>${esc(m.displayName)}</dd>
+    <dt>Ring size</dt><dd class="mono">${r.innerDiameterMm} mm inner diameter</dd>
+    ${r.mounts.filter((x) => x.role === "side").length ? `<dt>Side stones</dt><dd class="mono">2 × round diamond-style ${r.mounts.find((x) => x.role === "side").fixedLengthMm} mm</dd>` : ""}
+    ${ringExtras(r).accentStones ? `<dt>Halo</dt><dd class="mono">${ringExtras(r).accentStones} × ${ringExtras(r).accentSizeMm} mm accent stones</dd>` : ""}
+    ${r.custom ? `<dt>Origin</dt><dd>${r.source === "photo" ? "Rebuilt from your photo" : "Designed by hand"}</dd>` : ""}
+    <dt>Head accepts</dt><dd class="mono">${cm.minLengthMm}-${cm.maxLengthMm} × ${cm.minWidthMm}-${cm.maxWidthMm} mm</dd>
+  </dl>
+  <div class="field"><label for="dname">Design name</label>
+    <input id="dname" type="text" value="${esc(`${g.displayName} ${r.displayName}`)}" style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px"></div>
+  <button class="btn primary block" id="saveBtn" ${f.status === "bad" ? "disabled" : ""}>Save design</button>
+  ${f.status === "bad" ? `<p class="note">This stone does not fit the setting yet. Adjust it in Customise before saving.</p>` : ""}`));
+  renderFitBox(host.querySelector("#fitbox"));
+  host.querySelector("#saveBtn").onclick = () => {
+    const list = loadSaved();
+    list.unshift({ name: host.querySelector("#dname").value.trim() || "Untitled design", savedAt: new Date().toISOString(), design: snapshot() });
+    storeSaved(list);
+    toast("Design saved.");
+    go("saved");
+  };
+}
+
+const SAVE_KEY = "gemxpert.savedDesigns.v1";
+let memorySaved = [];
+function loadSaved() { try { const v = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); if (Array.isArray(v)) return v; } catch (e) { /* storage unavailable */ } return memorySaved; }
+function storeSaved(list) { memorySaved = list; try { localStorage.setItem(SAVE_KEY, JSON.stringify(list)); } catch (e) { /* kept for this visit only */ } }
+
+function viewSaved(host) {
+  const list = loadSaved();
+  if (!list.length) {
+    host.append(h(`<div class="empty">No saved designs yet. Build one, then use <b>Save design</b> on the Design Summary.</div>
+      <button class="btn primary block" data-go="summary">Go to Design Summary</button>`));
+    return;
+  }
+  const wrap = document.createElement("div"); wrap.className = "saved";
+  list.forEach((item, i) => {
+    const info = describe(item.design);
+    wrap.append(h(`<div class="saved-item">
+      <div><b>${esc(item.name)}</b><br><small>${esc(info.title)} · ${esc(info.detail)}</small><br><small>Saved ${new Date(item.savedAt).toLocaleString()}</small></div>
+      <div class="row" data-row="${i}">
+        <button class="btn" style="flex:1" data-restore="${i}">Restore</button>
+        <button class="btn" style="flex:1" data-cmpsaved="${i}">Compare</button>
+        <button class="btn" style="flex:1" data-del="${i}">Delete</button>
+      </div></div>`));
+  });
+  host.append(wrap);
+  host.append(h(`<p class="note">Saved designs stay in this browser on this device.</p>`));
+}
+
+// ------------------------------------------------------------------------------------------ design from a photo
+const round1 = (v) => Math.round(v * 10) / 10;
+const clampNum = (v, lo, hi, d) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
+const STYLE_TEXT = { solitaire: "Solitaire", halo: "Halo", three_stone: "Three-stone", bezel: "Bezel" };
+
+function defaultSpec() {
+  return { specVersion: 1, name: "My ring", style: "solitaire", prongs: 4, cathedral: false, headHeight: "medium", innerDiameterMm: 17.3,
+           bandWidthMm: 2.0, bandThicknessMm: 1.7, stone: { gemId: "diamond", shapeId: "round", lengthMm: 6.5, widthMm: 6.5 },
+           metalId: "yellow_gold", halo: { accentSizeMm: 1.3 }, sideStones: { sizeMm: 4.0 } };
+}
+
+/** Clamps whatever came back (from Claude or the form) to what the generator can build. */
+function normalizeSpec(raw) {
+  const d = defaultSpec(), r = raw || {}, st = r.stone || {};
+  const style = ["solitaire", "halo", "three_stone", "bezel"].includes(r.style) ? r.style : d.style;
+  const shapeId = CAT.shapes.some((s) => s.id === st.shapeId) ? st.shapeId : d.stone.shapeId;
+  const shape = shapeDef(shapeId);
+  let L = clampNum(st.lengthMm, shape.minLengthMm, shape.maxLengthMm, shape.defaultLengthMm);
+  let W = clampNum(st.widthMm, 3, 10, shape.defaultWidthMm);
+  if (shape.lockAspect) W = L;
+  else if (W > L) [L, W] = [W, L];
+  return {
+    specVersion: 1,
+    name: String(r.name || d.name).replace(/\s+/g, " ").trim().slice(0, 60) || d.name,
+    style,
+    prongs: [4, 6, 8].includes(Number(r.prongs)) ? Number(r.prongs) : 4,
+    cathedral: !!r.cathedral && (style === "solitaire" || style === "three_stone"),
+    headHeight: ["low", "medium", "high"].includes(r.headHeight) ? r.headHeight : style === "bezel" ? "low" : "medium",
+    innerDiameterMm: 17.3,
+    bandWidthMm: round1(clampNum(r.bandWidthMm, 1.6, 3.5, d.bandWidthMm)),
+    bandThicknessMm: round1(clampNum(r.bandThicknessMm, 1.5, 2.4, d.bandThicknessMm)),
+    stone: { gemId: CAT.gemstones.some((g) => g.id === st.gemId) ? st.gemId : d.stone.gemId, shapeId, lengthMm: round1(L), widthMm: round1(W) },
+    metalId: CAT.metals.some((m) => m.id === r.metalId) ? r.metalId : d.metalId,
+    halo: { accentSizeMm: round1(clampNum(r.halo?.accentSizeMm, 1.0, 1.8, 1.3)) },
+    sideStones: { sizeMm: round1(clampNum(r.sideStones?.sizeMm, 3.0, 5.0, 4.0)) },
+  };
+}
+
+/** A custom ring definition shaped like a rings.json entry, so fit checks, customising and saving all work. */
+function makeRingDef(spec, id, extra = {}) {
+  const st = spec.stone, shape = shapeDef(st.shapeId), depth = st.widthMm * depthRatio(st.shapeId);
+  const style = {
+    solitaire: `${spec.prongs}-prong solitaire${spec.cathedral ? " with cathedral shoulders" : ""}`,
+    halo: "Halo with pave accent stones",
+    three_stone: `Three-stone, ${spec.prongs}-prong centre${spec.cathedral ? ", cathedral shoulders" : ""}`,
+    bezel: "Full bezel",
+  }[spec.style];
+  const mounts = [{
+    id: "Center", role: "center", supportedShapes: CAT.shapes.map((s) => s.id),
+    minLengthMm: round1(Math.max(shape.minLengthMm, st.lengthMm - 1.5)), maxLengthMm: round1(Math.min(shape.maxLengthMm, st.lengthMm + 1.5)),
+    minWidthMm: round1(Math.max(3, st.widthMm - 1.2)), maxWidthMm: round1(st.widthMm + 1.2),
+    maxDepthMm: Math.round((depth + 0.9) * 100) / 100,
+    adjustRangeMm: spec.style === "bezel" ? { x: 0, y: 0.2, z: 0 } : { x: 0.3, y: 0.5, z: 0.3 },
+  }];
+  if (spec.style === "three_stone") {
+    for (const sid of ["SideL", "SideR"]) {
+      const s = spec.sideStones.sizeMm;
+      mounts.push({ id: sid, role: "side", supportedShapes: ["round"], minLengthMm: s, maxLengthMm: s, minWidthMm: s, maxWidthMm: s,
+                    maxDepthMm: s, adjustRangeMm: { x: 0, y: 0, z: 0 }, fixedGemstoneId: "diamond", fixedShapeId: "round", fixedLengthMm: s });
+    }
+  }
+  return {
+    id, custom: true, spec: JSON.parse(JSON.stringify(spec)), source: extra.source || "manual", photo: extra.photo || null,
+    displayName: spec.name, settingStyle: style,
+    description: extra.description || (extra.source === "photo" ? "Rebuilt from your photo." : "Designed by hand."),
+    innerDiameterMm: spec.innerDiameterMm, bandWidthMm: spec.bandWidthMm, bandThicknessMm: spec.bandThicknessMm,
+    defaultMetalId: spec.metalId, defaultGemstoneId: st.gemId, defaultShapeId: st.shapeId,
+    metalRendererPrefixes: ["Band", "Head", "Prong", "Halo", "Gallery", "Bezel", "Cathedral"], accentStoneRendererPrefixes: ["Accent"], mounts,
+  };
+}
+
+function photoPrompt() {
+  const gems = CAT.gemstones.map((g) => `${g.id} (${g.displayName}, colour ${g.colorHex})`).join("; ");
+  const cuts = CAT.shapes.map((s) => `${s.id} (${s.displayName})`).join("; ");
+  const metals = CAT.metals.map((m) => `${m.id} (${m.displayName})`).join("; ");
+  return [
+    "You are helping a jewellery app rebuild a ring from a customer's photo with a parametric 3D ring generator.",
+    "Look at the attached photo and describe the ring using ONLY the options below. Choose the closest option when unsure.",
+    "",
+    "Reply with only one JSON object of this shape:",
+    '{"isRing": true, "name": "short descriptive name, at most 6 words", "style": "solitaire" | "halo" | "three_stone" | "bezel", "prongs": 4 | 6 | 8, "cathedral": true | false, "headHeight": "low" | "medium" | "high", "bandWidthMm": number, "bandThicknessMm": number, "stone": {"gemId": string, "shapeId": string, "lengthMm": number, "widthMm": number}, "metalId": string, "halo": {"accentSizeMm": number}, "sideStones": {"sizeMm": number}, "confidence": "high" | "medium" | "low", "observations": [string], "notMatched": [string]}',
+    "",
+    `gemId options: ${gems}.`,
+    `shapeId options: ${cuts}.`,
+    `metalId options: ${metals}.`,
+    "style: solitaire = one centre stone held by prongs; halo = centre stone surrounded by a ring of small stones; three_stone = a centre stone with one smaller stone on each side; bezel = a metal rim around the whole stone.",
+    "prongs = claws holding the centre stone (ignored for halo and bezel). cathedral = arched shoulders rising from the band up to the head. headHeight = how high the stone sits above the band.",
+    "All sizes are millimetres. If the photo has no scale reference, assume the band is about 2 mm wide and estimate the stone relative to it (a typical centre stone is 5-9 mm). lengthMm must be >= widthMm.",
+    "observations: up to 5 short facts you used, e.g. \"six round-tipped prongs\". notMatched: design features these options cannot express, e.g. \"twisted band\", \"milgrain edge\", \"pave stones along the band\"; empty if none.",
+    'If the image does not show a ring, reply {"isRing": false, "reason": "what the image shows"}.',
+  ].join("\n");
+}
+
+// Local test hook - 127.0.0.1 only, never on the published page: ?mockClaude=1 stands in for the viewer's
+// `sample` capability with a fixed answer, so the upload -> analyse -> preview path can be exercised offline.
+if (location.hostname === "127.0.0.1" && new URLSearchParams(location.search).has("mockClaude") && !window.claude) {
+  const answer = { isRing: true, name: "Six-Prong Oval Sapphire", style: "solitaire", prongs: 6, cathedral: true, headHeight: "high",
+    bandWidthMm: 2.1, bandThicknessMm: 1.8, stone: { gemId: "blue_sapphire", shapeId: "oval", lengthMm: 9.2, widthMm: 7.1 }, metalId: "yellow_gold",
+    halo: { accentSizeMm: 1.3 }, sideStones: { sizeMm: 4 }, confidence: "medium",
+    observations: ["oval blue centre stone", "six round-tipped prongs", "arched cathedral shoulders", "plain yellow-gold band"], notMatched: ["milgrain edge on the band"] };
+  const sample = Object.assign(async () => ({ text: JSON.stringify(answer) }), {
+    json: async (_p, o) => { await new Promise((r) => setTimeout(r, 1200)); if (o?.signal?.aborted) throw { code: "cancelled" }; return answer; },
+    limits: async () => ({ maxPromptBytes: 262144, images: { maxCount: 4, maxInputBytes: 20e6, mediaTypes: ["image/jpeg", "image/png", "image/webp"] } }),
+  });
+  window.claude = { use: async (name) => (name === "sample" ? sample : null) };
+}
+
+const photo = { file: null, url: null, thumb: null, result: null, spec: null, busy: false, ctl: null, message: "", messageKind: "" };
+let samplePromise = null, photoAvailable = null, downloadsPromise = null;
+function getCapability(name) {
+  return window.claude && typeof window.claude.use === "function" ? window.claude.use(name).catch(() => null) : Promise.resolve(null);
+}
+// Off claude.ai, the local server (Tools/serve_interface.py) can stand in for the `sample` capability: it sends
+// the photo to the Claude API with the developer's own key, which never reaches the browser.
+let localPhotoStatus = null;
+const LOCAL_HOSTS = ["127.0.0.1", "localhost", "[::1]"];
+async function shrinkForUpload(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1568 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    return { mediaType: "image/jpeg", data: c.toDataURL("image/jpeg", 0.9).split(",")[1] };
+  } catch (e) { throw { code: "image_rejected" }; }
+}
+const localSample = {
+  limits: async () => ({ images: { maxCount: 4, mediaTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"] } }),
+  json: async (prompt, opts = {}) => {
+    const images = await Promise.all((opts.images || []).map(shrinkForUpload));
+    let res;
+    try {
+      res = await fetch("/api/analyse-photo", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, images }), signal: opts.signal });
+    } catch (e) { throw { code: e?.name === "AbortError" ? "cancelled" : "local_offline" }; }
+    const answer = await res.json().catch(() => null);
+    if (!answer?.ok) throw { code: answer?.code || "local_error", message: answer?.message };
+    return answer.value;
+  },
+};
+async function findLocalSample() {
+  if (!LOCAL_HOSTS.includes(location.hostname)) return null;
+  try {
+    const res = await fetch("/api/photo-status", { cache: "no-store" });
+    localPhotoStatus = res.ok ? await res.json() : null;
+  } catch (e) { localPhotoStatus = null; }
+  return localPhotoStatus?.available ? localSample : null;
+}
+async function checkPhotoAvailability() {
+  samplePromise = samplePromise || getCapability("sample").then((s) => s || findLocalSample());
+  const s = await samplePromise;
+  const limits = s ? await s.limits().catch(() => null) : null;
+  photoAvailable = !!limits?.images;
+  if (state.view === "photo") show("photo");
+}
+
+async function makeThumb(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 240 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.8);
+  } catch (e) { return null; }
+}
+
+const ANALYSIS_ERRORS = {
+  not_granted: "Photo analysis wasn't allowed, so it is switched off for this visit. You can still set the design by hand below.",
+  sampling_disabled: "Claude isn't available for this account, so photo analysis is off. You can still set the design by hand below.",
+  images_unavailable: "This view can't send images to Claude. You can still set the design by hand below.",
+  image_rejected: "That file couldn't be read. Try a JPEG, PNG or WebP photo under 20 MB.",
+  rate_limited: "Too many requests just now. Wait a moment, then try again.",
+  refused: "Claude couldn't analyse this image. Try a different photo of the ring.",
+  invalid_json: "The answer couldn't be read as a design. Try again.",
+  session_expired: "Your session has expired. Sign in again, then retry.",
+  local_setup: "Photo analysis needs your Anthropic API key on this local copy. Add it to Tools/local_secrets.env and restart the local server.",
+  local_auth: "The Anthropic API key was rejected. Check the key in Tools/local_secrets.env, then restart the local server.",
+  local_billing: "Your Anthropic API account has no credit left. Add credit in the Claude Console, then try again.",
+  local_network: "The local server couldn't reach Claude. Check your internet connection and try again.",
+  local_offline: "The local server isn't answering. Start it again, then reload this page.",
+  local_error: "Claude returned an error. Try again in a moment.",
+};
+
+async function analysePhoto() {
+  const sample = await samplePromise;
+  if (!sample || !photo.file) return;
+  photo.busy = true; photo.message = "Reading the design... this usually takes 10-40 seconds."; photo.messageKind = "";
+  photo.ctl = new AbortController();
+  show("photo");
+  try {
+    const raw = await sample.json(photoPrompt(), { images: [photo.file], signal: photo.ctl.signal });
+    if (!raw || raw.isRing === false) {
+      photo.result = null;
+      photo.message = `This photo doesn't seem to show a ring${raw?.reason ? `: ${raw.reason}` : "."} Try a clear photo of a single ring.`;
+      photo.messageKind = "bad";
+    } else {
+      photo.result = raw;
+      photo.spec = normalizeSpec(raw);
+      photo.message = "Design read from your photo. Check the details below, adjust anything, then save it.";
+      photo.messageKind = "ok";
+      await previewDraft("photo");
+    }
+  } catch (e) {
+    if (e?.code === "cancelled") { photo.message = "Stopped."; photo.messageKind = ""; }
+    else {
+      photo.message = ANALYSIS_ERRORS[e?.code] || "Something went wrong while reading the photo. Try again.";
+      photo.messageKind = "bad";
+      if (["not_granted", "sampling_disabled", "images_unavailable", "not_declared", "capability_disabled"].includes(e?.code)) photoAvailable = false;
+    }
+  } finally {
+    photo.busy = false; photo.ctl = null;
+    if (state.view === "photo") show("photo");
+  }
+}
+
+async function previewDraft(source) {
+  draftRing = makeRingDef(photo.spec, "custom-draft", { source: source || (photo.result ? "photo" : "manual"), photo: photo.thumb });
+  state.ringId = draftRing.id;
+  applyRingDefaults(draftRing);
+  await syncStage(true);
+}
+
+let draftTimer = null;
+function scheduleDraft() { clearTimeout(draftTimer); draftTimer = setTimeout(() => previewDraft(), 220); }
+
+function saveDraft() {
+  const id = "custom-" + Date.now().toString(36);
+  const def = makeRingDef(photo.spec, id, { source: photo.result ? "photo" : "manual", photo: photo.thumb,
+    description: photo.result?.observations?.length ? `Rebuilt from your photo: ${photo.result.observations.slice(0, 3).join("; ")}.` : undefined });
+  customRings.push(def);
+  storeCustomRings();
+  draftRing = null;
+  applyRingDefaults(def);
+  syncStage(true);
+  toast(`Saved "${def.displayName}" to your designs.`);
+  show("photo");
+}
+
+function specForExport() {
+  return JSON.stringify({ ...photo.spec, id: "custom-" + (photo.spec.name || "ring").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    source: photo.result ? "photo" : "manual" }, null, 2);
+}
+
+const opt = (value, label, current) => `<option value="${value}" ${String(value) === String(current) ? "selected" : ""}>${esc(label)}</option>`;
+
+function viewPhoto(host) {
+  if (!photo.spec) photo.spec = normalizeSpec(defaultSpec());
+  const s = photo.spec, prongStyle = s.style === "solitaire" || s.style === "three_stone";
+  const avail = photoAvailable;
+  host.append(h(`<p class="lede">Upload a photo of a ring. Claude reads the setting, prongs, stone, metal and band, and GemXpert rebuilds it as a 3D ring you can customise like any other.</p>
+  <label class="drop" for="photoIn">
+    ${photo.url ? `<img src="${photo.url}" alt="Your ring photo">` : `<span>Choose a ring photo<br><small>JPEG, PNG or WebP · a clear, well-lit photo of one ring works best</small></span>`}
+  </label>
+  <input type="file" id="photoIn" accept="image/jpeg,image/png,image/webp,image/gif" class="sr-only">
+  <div class="row">
+    <button class="btn primary" style="flex:1" id="analyse" ${!photo.file || photo.busy || avail !== true ? "disabled" : ""}>${photo.busy ? "Analysing..." : "Analyse photo"}</button>
+    ${photo.busy ? `<button class="btn" id="stopAnalyse">Stop</button>` : ""}
+  </div>
+  ${avail === false ? `<p class="note">${localPhotoStatus?.reason ? `${esc(localPhotoStatus.reason)} You can still build the design by hand below.`
+      : LOCAL_HOSTS.includes(location.hostname) ? "Photo analysis on this local copy needs the GemXpert local server (Tools/serve_interface.py) with your Anthropic API key. You can still build the design by hand below."
+      : "Photo analysis runs when this page is opened in Claude: it uses your Claude account and asks your permission the first time. You can still build the design by hand below."}</p>` : ""}
+  ${avail === null ? `<p class="note">Checking whether photo analysis is available...</p>` : ""}
+  ${photo.message ? `<div class="fitbox ${photo.messageKind}" role="status"><b>${esc(photo.message)}</b></div>` : ""}
+  ${photo.result ? `<div class="findings">
+      <span class="eyebrow">What Claude saw · confidence ${esc(photo.result.confidence || "unknown")}</span>
+      <ul>${(photo.result.observations || []).slice(0, 5).map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
+      ${(photo.result.notMatched || []).length ? `<span class="eyebrow">Can't be reproduced yet</span><ul class="warn">${photo.result.notMatched.slice(0, 5).map((o) => `<li>${esc(o)}</li>`).join("")}</ul>` : ""}
+    </div>` : ""}
+  <h2 class="section">Design</h2>
+  <div class="form">
+    <label>Name<input id="fName" type="text" maxlength="60" value="${esc(s.name)}"></label>
+    <label>Setting<select id="fStyle">${Object.entries(STYLE_TEXT).map(([k, v]) => opt(k, v, s.style)).join("")}</select></label>
+    <label>Prongs<select id="fProngs" ${prongStyle ? "" : "disabled"}>${[4, 6, 8].map((n) => opt(n, `${n} prongs`, s.prongs)).join("")}</select></label>
+    <label>Stone height<select id="fHead">${[["low", "Low"], ["medium", "Medium"], ["high", "High"]].map(([k, v]) => opt(k, v, s.headHeight)).join("")}</select></label>
+    <label class="check"><input type="checkbox" id="fCath" ${s.cathedral ? "checked" : ""} ${prongStyle ? "" : "disabled"}> Cathedral shoulders</label>
+    <label>Gemstone<select id="fGem">${CAT.gemstones.map((g) => opt(g.id, g.displayName, s.stone.gemId)).join("")}</select></label>
+    <label>Cut<select id="fCut">${CAT.shapes.map((c) => opt(c.id, c.displayName, s.stone.shapeId)).join("")}</select></label>
+    <label>Metal<select id="fMetal">${CAT.metals.map((m) => opt(m.id, m.displayName, s.metalId)).join("")}</select></label>
+  </div>
+  ${[["fLen", "Stone length", s.stone.lengthMm, shapeDef(s.stone.shapeId).minLengthMm, shapeDef(s.stone.shapeId).maxLengthMm],
+     ["fWid", "Stone width", s.stone.widthMm, 3, 10],
+     ["fBandW", "Band width", s.bandWidthMm, 1.6, 3.5],
+     ["fBandT", "Band thickness", s.bandThicknessMm, 1.5, 2.4],
+     ...(s.style === "halo" ? [["fAccent", "Halo stone size", s.halo.accentSizeMm, 1.0, 1.8]] : []),
+     ...(s.style === "three_stone" ? [["fSide", "Side stone size", s.sideStones.sizeMm, 3, 5]] : [])]
+    .map(([id, label, v, lo, hi]) => `<div class="field"><div class="field-top"><label for="${id}">${label}</label><span class="val" id="${id}V">${Number(v).toFixed(1)} mm</span></div>
+      <input type="range" id="${id}" min="${lo}" max="${hi}" step="0.1" value="${v}" ${id === "fWid" && shapeDef(s.stone.shapeId).lockAspect ? "disabled" : ""}></div>`).join("")}
+  <div class="row">
+    <button class="btn" style="flex:1" id="previewBtn">Show on the stand</button>
+    <button class="btn primary" style="flex:1" id="saveDesign">Save to my designs</button>
+  </div>
+  <div class="row">
+    <button class="btn" style="flex:1" id="specDl" hidden>Download spec for Blender</button>
+    <button class="btn" style="flex:1" id="specCopy">Copy spec (JSON)</button>
+  </div>
+  <p class="note">The spec builds the same ring in Blender for the Unity app: <code>build_custom.py -- spec.json</code>.</p>
+  <h2 class="section">Your designs</h2>
+  <div class="saved" id="customList"></div>`));
+
+  const list = host.querySelector("#customList");
+  if (!customRings.length) list.append(h(`<div class="empty">Designs you save here appear in Ring Designs too.</div>`));
+  customRings.forEach((r) => {
+    list.append(h(`<div class="saved-item"><div class="row" style="align-items:center;flex-wrap:nowrap">
+        <img src="${r.photo || RING_ICON}" alt="" style="width:56px;height:46px;object-fit:cover;border-radius:8px">
+        <div style="min-width:0"><b>${esc(r.displayName)}</b><br><small>${esc(r.settingStyle)} · ${esc(byId(CAT.gemstones, r.defaultGemstoneId).displayName)}</small></div></div>
+      <div class="row"><button class="btn" style="flex:1" data-ring="${r.id}">Show</button><button class="btn" style="flex:1" data-cdel="${r.id}">Remove</button></div></div>`));
+  });
+
+  host.querySelector("#photoIn").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (photo.url) URL.revokeObjectURL(photo.url);
+    photo.file = file; photo.url = URL.createObjectURL(file); photo.thumb = await makeThumb(file);
+    photo.result = null; photo.message = ""; photo.messageKind = "";
+    show("photo");
+  });
+  host.querySelector("#analyse").onclick = analysePhoto;
+  host.querySelector("#stopAnalyse")?.addEventListener("click", () => photo.ctl?.abort());
+
+  const read = () => {
+    const v = (id) => host.querySelector("#" + id);
+    const next = {
+      ...photo.spec, name: v("fName").value, style: v("fStyle").value, prongs: Number(v("fProngs").value), headHeight: v("fHead").value,
+      cathedral: v("fCath").checked, metalId: v("fMetal").value, bandWidthMm: Number(v("fBandW").value), bandThicknessMm: Number(v("fBandT").value),
+      stone: { gemId: v("fGem").value, shapeId: v("fCut").value, lengthMm: Number(v("fLen").value), widthMm: Number(v("fWid").value) },
+      halo: { accentSizeMm: v("fAccent") ? Number(v("fAccent").value) : photo.spec.halo.accentSizeMm },
+      sideStones: { sizeMm: v("fSide") ? Number(v("fSide").value) : photo.spec.sideStones.sizeMm },
+    };
+    const cutChanged = next.stone.shapeId !== photo.spec.stone.shapeId, styleChanged = next.style !== photo.spec.style;
+    if (cutChanged) { const sd = shapeDef(next.stone.shapeId); next.stone.lengthMm = sd.defaultLengthMm; next.stone.widthMm = sd.defaultWidthMm; }
+    photo.spec = normalizeSpec(next);
+    if (cutChanged || styleChanged) show("photo");   // slider ranges / visible fields change
+    else for (const id of ["fLen", "fWid", "fBandW", "fBandT", "fAccent", "fSide"]) {
+      const el = host.querySelector("#" + id + "V");
+      if (el) el.textContent = `${Number(host.querySelector("#" + id).value).toFixed(1)} mm`;
+    }
+    if (photo.spec.style && state.ringId === "custom-draft") scheduleDraft();
+  };
+  host.querySelectorAll(".form select, .form input, input[type=range]").forEach((el) => el.addEventListener(el.type === "range" || el.type === "text" ? "input" : "change", read));
+  host.querySelector("#previewBtn").onclick = () => previewDraft();
+  host.querySelector("#saveDesign").onclick = saveDraft;
+  host.querySelector("#specCopy").onclick = async () => {
+    const text = specForExport();
+    try { await navigator.clipboard.writeText(text); toast("Spec copied. Save it as a .json file for build_custom.py."); }
+    catch (e) { const pre = document.createElement("pre"); pre.className = "packet"; pre.textContent = text; host.querySelector("#specCopy").closest(".row").after(pre); }
+  };
+  downloadsPromise = downloadsPromise || getCapability("downloads");
+  downloadsPromise.then((dl) => {
+    const btn = host.querySelector("#specDl");
+    if (!dl || !btn) return;
+    btn.hidden = false;
+    btn.onclick = async () => {
+      const name = (photo.spec.name || "ring").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "ring";
+      try { await dl.save({ filename: `gemxpert_${name}.json`, data: specForExport() }); }
+      catch (e) { if (e?.code !== "declined") toast("The spec couldn't be saved here. Use Copy spec instead."); }
+    };
+  });
+}
+
+function viewDevice(host) {
+  host.append(h(`<div class="device">
+    <div class="device-top"><div><b id="devName">${wear.connected ? "GemXpert Ring Controller" : "No device connected"}</b><br><small class="hint" id="devSub">${wear.connected ? "ESP32 + MPU6050 · BLE" : "Scan to find the wearable"}</small></div><span class="sim-badge">Simulated</span></div>
+    <div class="row">
+      <button class="btn ${wear.connected ? "" : "primary"}" style="flex:1" id="devConnect">${wear.connected ? "Disconnect" : "Scan &amp; connect"}</button>
+      <button class="btn" style="flex:1" id="devCal" ${wear.connected ? "" : "disabled"}>Calibrate</button>
+    </div>
+    <div class="readout" id="readout">
+      <span></span><span>X</span><span>Y</span><span>Z</span>
+      <span>Gyro °/s</span><span id="gx">-</span><span id="gy">-</span><span id="gz">-</span>
+      <span>Accel g</span><span id="ax">-</span><span id="ay">-</span><span id="az">-</span>
+      <span>Orient °</span><span id="oy">-</span><span id="op">-</span><span id="or">-</span>
+    </div>
+    <div class="hint" id="devBattery">Battery: -</div>
+  </div>
+  <h2 class="section">Hand motion</h2>
+  <label class="row" style="align-items:center;gap:8px"><input type="checkbox" id="devAuto" ${wear.auto ? "checked" : ""}> Simulate natural wrist movement</label>
+  <div class="field"><div class="field-top"><label for="sRoll">Roll</label><span class="val" id="sRollV"></span></div><input type="range" id="sRoll" min="-60" max="60" step="1" value="${wear.roll.toFixed(0)}"></div>
+  <div class="field"><div class="field-top"><label for="sPitch">Pitch</label><span class="val" id="sPitchV"></span></div><input type="range" id="sPitch" min="-45" max="45" step="1" value="${wear.pitch.toFixed(0)}"></div>
+  <h2 class="section">Gestures</h2>
+  <div class="row">
+    <button class="btn" style="flex:1" data-gesture="tap">Tap</button>
+    <button class="btn" style="flex:1" data-gesture="double">Double tap</button>
+    <button class="btn" style="flex:1" data-gesture="swipe">Swipe</button>
+  </div>
+  <p class="note">Tap shows the next gemstone, double tap the next metal, swipe the next ring design.</p>
+  <h2 class="section">Data packet (JSON prototype format)</h2>
+  <pre class="packet" id="packet">{ "connect to see live packets": true }</pre>
+  <p class="note">This page simulates the wearable so the interface can be tried without hardware. The VR build connects to the real ESP32 over Bluetooth LE. The IMU supplies orientation and gestures. Hand position always comes from the headset's hand tracking.</p>`));
+  host.querySelector("#devConnect").onclick = () => {
+    if (wear.connected) { wear.connected = false; setWearStatus("Wearable: not connected", false); show("wearable"); return; }
+    const btn = host.querySelector("#devConnect"); btn.disabled = true; btn.textContent = "Scanning...";
+    setTimeout(() => { btn.textContent = "Connecting to GemXpert-Ring-01..."; }, 700);
+    setTimeout(() => { wear.connected = true; setWearStatus("Wearable: connected (simulated)", true); setAutoRotate(false); show("wearable"); toast("GemXpert-Ring-01 connected (simulated)."); }, 1500);
+  };
+  host.querySelector("#devCal").onclick = () => { wear.zero = { yaw: wear.yaw, pitch: wear.pitch, roll: wear.roll }; toast("Calibrated: the current hand pose is now neutral."); };
+  const auto = host.querySelector("#devAuto"), roll = host.querySelector("#sRoll"), pitch = host.querySelector("#sPitch");
+  const syncSliders = () => {
+    wear.auto = auto.checked; roll.disabled = pitch.disabled = wear.auto;
+    if (!wear.auto) { wear.roll = +roll.value; wear.pitch = +pitch.value; }
+    host.querySelector("#sRollV").textContent = `${(+roll.value).toFixed(0)}°`;
+    host.querySelector("#sPitchV").textContent = `${(+pitch.value).toFixed(0)}°`;
+  };
+  [auto, roll, pitch].forEach((el) => el.addEventListener("input", syncSliders));
+  syncSliders();
+  updateDeviceReadout();
+}
+
+function updateDeviceReadout() {
+  if (state.view !== "wearable" || !wear.connected || !wear.gyro) return;
+  const set = (id, v, d = 1) => { const el = document.getElementById(id); if (el) el.textContent = v.toFixed(d); };
+  set("gx", wear.gyro[0]); set("gy", wear.gyro[1]); set("gz", wear.gyro[2]);
+  set("ax", wear.accel[0], 2); set("ay", wear.accel[1], 2); set("az", wear.accel[2], 2);
+  set("oy", wear.yaw - wear.zero.yaw); set("op", wear.pitch - wear.zero.pitch); set("or", wear.roll - wear.zero.roll);
+  wear.battery = Math.max(5, wear.battery - 0.0004);
+  const b = document.getElementById("devBattery"); if (b) b.textContent = `Battery: ${wear.battery.toFixed(0)}% (simulated) · 50 Hz`;
+  const pk = document.getElementById("packet");
+  if (pk) pk.textContent = JSON.stringify({ t: Math.round(performance.now()), g: wear.gyro.map((v) => +v.toFixed(1)), a: wear.accel.map((v) => +v.toFixed(3)),
+    e: [+(wear.yaw - wear.zero.yaw).toFixed(1), +(wear.pitch - wear.zero.pitch).toFixed(1), +(wear.roll - wear.zero.roll).toFixed(1)], bat: Math.round(wear.battery) });
+}
+
+function setWearStatus(text, on) {
+  document.getElementById("wearText").textContent = text;
+  document.getElementById("wearDot").classList.toggle("on", on);
+  document.getElementById("footStatus").textContent = on ? "Wearable connected (simulated)" : "Browser preview";
+}
+
+function gesture(kind) {
+  if (!wear.connected) { toast("Connect the wearable first."); return; }
+  const cycle = (list, cur) => list[(list.indexOf(cur) + 1) % list.length];
+  if (kind === "tap") { state.gemId = cycle(CAT.gemstones.map((g) => g.id), state.gemId); toast(`Tap: ${gemDef().displayName}`); }
+  if (kind === "double") { state.metalId = cycle(CAT.metals.map((m) => m.id), state.metalId); toast(`Double tap: ${metalDef().displayName}`); }
+  if (kind === "swipe") {
+    const list = [...CAT.rings, ...customRings];
+    const next = ringById(cycle(list.map((r) => r.id), state.ringId));
+    const keepGem = state.gemId, keepMetal = state.metalId;
+    applyRingDefaults(next); state.gemId = keepGem; state.metalId = keepMetal;
+    toast(`Swipe: ${next.displayName}`);
+  }
+  syncStage();
+}
+
+// one delegated click handler for all screens
+document.getElementById("screen").addEventListener("click", (e) => {
+  const t = e.target.closest("button");
+  if (!t || t.disabled) return;
+  const d = t.dataset;
+  if (d.go) go(d.go);
+  else if (d.ring) {
+    const r = ringById(d.ring);
+    if (!r) return;
+    applyRingDefaults(r);
+    syncStage(); show(state.view); toast(`${r.displayName} with ${gemDef().displayName} ${shapeDef().displayName.toLowerCase()} in ${metalDef().displayName}.`);
+  } else if (d.gem) { state.gemId = d.gem; syncStage(); show("gemstones"); }
+  else if (d.shape) { setShape(d.shape); syncStage(); show("gemstones"); }
+  else if (d.metal) { state.metalId = d.metal; syncStage(); show("customise"); }
+  else if (d.cmp !== undefined) { restore(state.compare[+d.cmp]); show("inspect"); }
+  else if (d.restore !== undefined) { restore(loadSaved()[+d.restore].design); toast("Design restored."); go("summary"); }
+  else if (d.cmpsaved !== undefined) { state.compare.push(loadSaved()[+d.cmpsaved].design); if (state.compare.length > 4) state.compare.shift(); toast("Added to compare."); go("inspect"); }
+  else if (d.del !== undefined) {
+    const row = t.parentElement;
+    row.innerHTML = `<span style="flex:1;align-self:center">Delete this design?</span><button class="btn" data-delyes="${d.del}">Delete</button><button class="btn" data-delno="1">Keep</button>`;
+  } else if (d.delyes !== undefined) { const list = loadSaved(); list.splice(+d.delyes, 1); storeSaved(list); show("saved"); }
+  else if (d.delno) show("saved");
+  else if (d.gesture) gesture(d.gesture);
+  else if (d.cdel) {
+    t.parentElement.innerHTML = `<span style="flex:1;align-self:center">Remove this design?</span><button class="btn" data-cdelyes="${esc(d.cdel)}">Remove</button><button class="btn" data-cdelno="1">Keep</button>`;
+  } else if (d.cdelyes) {
+    customRings = customRings.filter((r) => r.id !== d.cdelyes);
+    storeCustomRings();
+    if (state.ringId === d.cdelyes) { applyRingDefaults(CAT.rings[0]); syncStage(); }
+    show(state.view);
+  } else if (d.cdelno) show(state.view);
+});
+
+// ------------------------------------------------------------------------------------------ boot
+async function boot() {
+  const loading = document.getElementById("loading");
+  try {
+    const names = ["rings", "gemstones", "shapes", "metals"];
+    const [rings, gemstones, shapes, metals, meta] = await Promise.all(
+      [...names.map((n) => getJSON(`data/${n}.json`)), getJSON("data/asset_metadata.json")]);
+    CAT = { rings: rings.items, gemstones: gemstones.items, shapes: shapes.items, metals: metals.items };
+    META = meta;
+  } catch (err) {
+    console.error(err);
+    loading.textContent = "The catalogue could not be loaded. Reload the page to try again.";
+    document.getElementById("screen").innerHTML = `<div class="empty">GemXpert couldn't load its catalogue. Reload the page to try again.</div>`;
+    return;
+  }
+  loadCustomRings();
+  checkPhotoAvailability();   // resolves later; the photo screen re-renders when it knows
+  applyRingDefaults(byId(CAT.rings, "solitaire"));
+  // The panel works from the catalogue alone, so show it before the 3D models finish loading.
+  show(location.hash.slice(1) || "welcome");
+  resize();
+  try {
+    await syncStage();
+    tick();
+    loading.classList.add("done");
+  } catch (err) {
+    console.error(err);
+    loading.textContent = "The 3D models could not be loaded. The panel still works. Reload to try the 3D view again.";
+  }
+}
+boot();
+</script>

@@ -1,0 +1,29 @@
+{
+    "name": "GemXpert.Interaction",
+    "rootNamespace": "GemXpert.Interaction",
+    "references": [
+        "GemXpert.Core",
+        "GemXpert.UI",
+        "UnityEngine.UI",
+        "Unity.InputSystem",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Interaction.Toolkit"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "GEMXPERT_XRI"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "3.0.0",
+            "define": "GEMXPERT_XRI"
+        }
+    ],
+    "noEngineReferences": false
+}

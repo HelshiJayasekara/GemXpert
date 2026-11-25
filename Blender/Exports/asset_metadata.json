@@ -1,0 +1,297 @@
+{
+  "generatedBy": "Blender/Scripts/build_all.py",
+  "blenderVersion": "5.3.0",
+  "units": "millimetres; unity* fields are already converted to Unity axes",
+  "gemCuts": {
+    "round": {
+      "cut": "round",
+      "facets": 121,
+      "vertices": 193,
+      "length_to_width": 1.000000000000004,
+      "depth_ratio": 0.6086198353397462,
+      "crown_fraction": 0.2671114850351029,
+      "pavilion_fraction": 0.732888514964897,
+      "object": "Gem_Round"
+    },
+    "oval": {
+      "cut": "oval",
+      "facets": 121,
+      "vertices": 234,
+      "length_to_width": 1.3333333333333386,
+      "depth_ratio": 0.6095231096523099,
+      "crown_fraction": 0.2631915891845406,
+      "pavilion_fraction": 0.7368084108154594,
+      "object": "Gem_Oval"
+    },
+    "cushion": {
+      "cut": "cushion",
+      "facets": 129,
+      "vertices": 245,
+      "length_to_width": 1.000000000000003,
+      "depth_ratio": 0.6343558155114121,
+      "crown_fraction": 0.2551027136709696,
+      "pavilion_fraction": 0.7448972863290304,
+      "object": "Gem_Cushion"
+    },
+    "pear": {
+      "cut": "pear",
+      "facets": 129,
+      "vertices": 248,
+      "length_to_width": 1.4986686301473051,
+      "depth_ratio": 0.623858593480431,
+      "crown_fraction": 0.2669466737901714,
+      "pavilion_fraction": 0.7330533262098287,
+      "object": "Gem_Pear"
+    },
+    "emerald": {
+      "cut": "emerald",
+      "facets": 57,
+      "vertices": 62,
+      "length_to_width": 1.4,
+      "depth_ratio": 0.6317321878714885,
+      "crown_fraction": 0.2884426277652572,
+      "pavilion_fraction": 0.7115573722347427,
+      "object": "Gem_EmeraldCut"
+    },
+    "princess": {
+      "cut": "princess",
+      "facets": 45,
+      "vertices": 65,
+      "length_to_width": 1.0,
+      "depth_ratio": 0.7400468320414435,
+      "crown_fraction": 0.16507701909905526,
+      "pavilion_fraction": 0.8349229809009447,
+      "object": "Gem_Princess"
+    }
+  },
+  "rings": {
+    "solitaire": {
+      "id": "solitaire",
+      "object": "Ring_Solitaire",
+      "bandOuterTopMm": 10.554,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            0.0,
+            0.0,
+            14.453328167452124
+          ],
+          "blenderRotationDeg": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 6.5,
+          "headDefaultWidthMm": 6.5,
+          "defaultShape": "round",
+          "unityPositionMm": [
+            -0.0,
+            14.4533,
+            -0.0
+          ],
+          "unityEulerDeg": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "accentStones": 0,
+      "settingTriangles": 14928
+    },
+    "halo": {
+      "id": "halo",
+      "object": "Ring_Halo",
+      "bandOuterTopMm": 10.666,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            0.0,
+            0.0,
+            14.465328167452125
+          ],
+          "blenderRotationDeg": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 6.5,
+          "headDefaultWidthMm": 6.5,
+          "defaultShape": "round",
+          "unityPositionMm": [
+            -0.0,
+            14.4653,
+            -0.0
+          ],
+          "unityEulerDeg": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "accentStones": 18,
+      "accentSizeMm": 1.3,
+      "settingTriangles": 28924
+    },
+    "three_stone": {
+      "id": "three_stone",
+      "object": "Ring_ThreeStone",
+      "bandOuterTopMm": 10.666,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            0.0,
+            0.0,
+            14.160610522669295
+          ],
+          "blenderRotationDeg": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 8.0,
+          "headDefaultWidthMm": 6.0,
+          "defaultShape": "oval",
+          "unityPositionMm": [
+            -0.0,
+            14.1606,
+            -0.0
+          ],
+          "unityEulerDeg": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "SideL": {
+          "blenderPositionMm": [
+            6.1,
+            0.0,
+            12.960610522669295
+          ],
+          "blenderRotationDeg": [
+            0.0,
+            14.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 4.0,
+          "headDefaultWidthMm": 4.0,
+          "defaultShape": "round",
+          "unityPositionMm": [
+            -6.1,
+            12.9606,
+            -0.0
+          ],
+          "unityEulerDeg": [
+            0.0,
+            0.0,
+            14.0
+          ]
+        },
+        "SideR": {
+          "blenderPositionMm": [
+            -6.1,
+            0.0,
+            12.960610522669295
+          ],
+          "blenderRotationDeg": [
+            0.0,
+            -14.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 4.0,
+          "headDefaultWidthMm": 4.0,
+          "defaultShape": "round",
+          "unityPositionMm": [
+            6.1,
+            12.9606,
+            -0.0
+          ],
+          "unityEulerDeg": [
+            0.0,
+            0.0,
+            -14.0
+          ]
+        }
+      },
+      "accentStones": 0,
+      "settingTriangles": 30960
+    },
+    "prong": {
+      "id": "prong",
+      "object": "Ring_Prong",
+      "bandOuterTopMm": 10.666,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            0.0,
+            0.0,
+            15.337444516019685
+          ],
+          "blenderRotationDeg": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 6.5,
+          "headDefaultWidthMm": 6.5,
+          "defaultShape": "cushion",
+          "unityPositionMm": [
+            -0.0,
+            15.3374,
+            -0.0
+          ],
+          "unityEulerDeg": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "accentStones": 0,
+      "settingTriangles": 20488
+    },
+    "bezel": {
+      "id": "bezel",
+      "object": "Ring_Bezel",
+      "bandOuterTopMm": 10.778,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            0.0,
+            0.0,
+            13.922610522669293
+          ],
+          "blenderRotationDeg": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 8.0,
+          "headDefaultWidthMm": 6.0,
+          "defaultShape": "oval",
+          "unityPositionMm": [
+            -0.0,
+            13.9226,
+            -0.0
+          ],
+          "unityEulerDeg": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "accentStones": 0,
+      "settingTriangles": 11512
+    }
+  },
+  "hand": {
+    "skinTriangles": 48000,
+    "nailTriangles": 3100,
+    "ringFingerWidthAtRingMm": 16.6,
+    "handedness": "left",
+    "anchor": "RingAnchor_RingFinger"
+  }
+}
