@@ -399,6 +399,309 @@
       },
       "pair": true,
       "settingTriangles": 13616
+    },
+    "pendant_pear_double_halo": {
+      "id": "pendant_pear_double_halo",
+      "object": "Pendant_PearDoubleHalo",
+      "category": "pendant",
+      "accentStones": 43,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            0.0,
+            -49.37291059074409,
+            -42.99653353671162
+          ],
+          "blenderRotationDeg": [
+            89.70160520001865,
+            -179.999991348578,
+            -0.0
+          ],
+          "headDefaultLengthMm": 7.0,
+          "headDefaultWidthMm": 4.8,
+          "defaultShape": "pear",
+          "unityPositionMm": [
+            -0.0,
+            -42.9965,
+            49.3729
+          ]
+        }
+      },
+      "accentSizeMm": 1.05,
+      "settingTriangles": 69514
+    },
+    "pendant_pear_cluster": {
+      "id": "pendant_pear_cluster",
+      "object": "Pendant_PearCluster",
+      "category": "pendant",
+      "accentStones": 16,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            0.0,
+            -49.470206524120364,
+            -41.877025062512004
+          ],
+          "blenderRotationDeg": [
+            89.70160520001865,
+            -179.999991348578,
+            -0.0
+          ],
+          "headDefaultLengthMm": 7.0,
+          "headDefaultWidthMm": 5.0,
+          "defaultShape": "pear",
+          "unityPositionMm": [
+            -0.0,
+            -41.877,
+            49.4702
+          ]
+        }
+      },
+      "accentSizeMm": 1.4,
+      "settingTriangles": 56016
+    },
+    "pendant_blossom": {
+      "id": "pendant_blossom",
+      "object": "Pendant_Blossom",
+      "category": "pendant",
+      "accentStones": 120,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            0.0,
+            -47.878176700474384,
+            -44.59877083724923
+          ],
+          "blenderRotationDeg": [
+            90.29839297874851,
+            -0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 3.5,
+          "headDefaultWidthMm": 3.5,
+          "defaultShape": "round",
+          "unityPositionMm": [
+            -0.0,
+            -44.5988,
+            47.8782
+          ]
+        }
+      },
+      "accentSizeMm": 0.8,
+      "settingTriangles": 49728
+    },
+    "necklace_lariat": {
+      "id": "necklace_lariat",
+      "object": "Necklace_OvalLariat",
+      "category": "necklace",
+      "accentStones": 21,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            0.0,
+            -50.108694622010646,
+            -40.90033700093314
+          ],
+          "blenderRotationDeg": [
+            90.29839297874851,
+            -0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 9.0,
+          "headDefaultWidthMm": 6.5,
+          "defaultShape": "oval",
+          "unityPositionMm": [
+            -0.0,
+            -40.9003,
+            50.1087
+          ]
+        }
+      },
+      "accentSizeMm": 1.3,
+      "settingTriangles": 63006
+    },
+    "earring_pear_cluster": {
+      "id": "earring_pear_cluster",
+      "object": "Earring_PearCluster",
+      "category": "earring",
+      "accentStones": 34,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            14.0,
+            -3.5366080851770767,
+            0.0
+          ],
+          "blenderRotationDeg": [
+            -90.0,
+            0.0,
+            180.0
+          ],
+          "headDefaultLengthMm": 7.0,
+          "headDefaultWidthMm": 5.0,
+          "defaultShape": "pear",
+          "unityPositionMm": [
+            -14.0,
+            0.0,
+            3.5366
+          ]
+        },
+        "Pair": {
+          "blenderPositionMm": [
+            -14.0,
+            -3.5366080851770767,
+            0.0
+          ],
+          "blenderRotationDeg": [
+            -90.0,
+            0.0,
+            180.0
+          ],
+          "headDefaultLengthMm": 7.0,
+          "headDefaultWidthMm": 5.0,
+          "defaultShape": "pear",
+          "unityPositionMm": [
+            14.0,
+            0.0,
+            3.5366
+          ]
+        }
+      },
+      "pair": true,
+      "accentSizeMm": 1.3,
+      "settingTriangles": 59916
+    },
+    "earring_blossom": {
+      "id": "earring_blossom",
+      "object": "Earring_Blossom",
+      "category": "earring",
+      "accentStones": 140,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            14.0,
+            -1.7381514619009804,
+            0.0
+          ],
+          "blenderRotationDeg": [
+            90.0,
+            0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 3.0,
+          "headDefaultWidthMm": 3.0,
+          "defaultShape": "round",
+          "unityPositionMm": [
+            -14.0,
+            0.0,
+            1.7382
+          ]
+        },
+        "Pair": {
+          "blenderPositionMm": [
+            -14.0,
+            -1.7381514619009804,
+            0.0
+          ],
+          "blenderRotationDeg": [
+            90.0,
+            0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 3.0,
+          "headDefaultWidthMm": 3.0,
+          "defaultShape": "round",
+          "unityPositionMm": [
+            14.0,
+            0.0,
+            1.7382
+          ]
+        }
+      },
+      "pair": true,
+      "accentSizeMm": 0.75,
+      "settingTriangles": 40608
+    },
+    "earring_oval_drop": {
+      "id": "earring_oval_drop",
+      "object": "Earring_OvalHaloDrop",
+      "category": "earring",
+      "accentStones": 34,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            14.0,
+            -3.4955087688910775,
+            0.0
+          ],
+          "blenderRotationDeg": [
+            90.0,
+            0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 7.0,
+          "headDefaultWidthMm": 5.0,
+          "defaultShape": "oval",
+          "unityPositionMm": [
+            -14.0,
+            0.0,
+            3.4955
+          ]
+        },
+        "Pair": {
+          "blenderPositionMm": [
+            -14.0,
+            -3.4955087688910775,
+            0.0
+          ],
+          "blenderRotationDeg": [
+            90.0,
+            0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 7.0,
+          "headDefaultWidthMm": 5.0,
+          "defaultShape": "oval",
+          "unityPositionMm": [
+            14.0,
+            0.0,
+            3.4955
+          ]
+        }
+      },
+      "pair": true,
+      "accentSizeMm": 1.3,
+      "settingTriangles": 64452
+    },
+    "pendant_starburst": {
+      "id": "pendant_starburst",
+      "object": "Pendant_Starburst",
+      "category": "pendant",
+      "accentStones": 63,
+      "mounts": {
+        "Center": {
+          "blenderPositionMm": [
+            0.0,
+            -48.279381064068374,
+            -50.27093719175326
+          ],
+          "blenderRotationDeg": [
+            90.29839297874851,
+            -0.0,
+            0.0
+          ],
+          "headDefaultLengthMm": 4.5,
+          "headDefaultWidthMm": 4.5,
+          "defaultShape": "round",
+          "unityPositionMm": [
+            -0.0,
+            -50.2709,
+            48.2794
+          ]
+        }
+      },
+      "accentSizeMm": 0.9,
+      "settingTriangles": 109986
     }
   }
 }

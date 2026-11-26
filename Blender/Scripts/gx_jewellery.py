@@ -14,7 +14,11 @@ Built with the same contract as the rings (gx_rings.py), so the web app and Unit
                                about this object's origin, so a bigger stone simply hangs lower
       GemMount_SideL/SideR     fixed side stones (bangle)
       GemMount_Pair            the second earring of a pair: same heads, follows the Center stone
-        Attach_Post / Attach_Back   stud post and butterfly back (not scaled)
+        Attach_Post / Attach_Back   stud post and butterfly or screw back (not scaled)
+        Drop_Center / Drop_Pair     a chain and a claw-set drop hanging from the head. NOT scaled: the app moves it
+                                    so it stays on the bottom of the head as the stone grows
+          AccentMatch_Drop          the drop stone; the app gives it the same gemstone as the centre stone
+      AccentPink_*             fixed accent stones the app shows as pink sapphire (catalogue "accentGems")
 
 Pendants and necklaces are modelled in "bust space": they lie on the velvet display bust (Display_Bust) exactly as
 they would in a shop window (a classic white display bust). Blender axes: Z up, the bust faces -Y. Bracelets use ring axes: the wrist runs along
@@ -27,6 +31,35 @@ import numpy as np
 import gx_common as gx
 import gx_gems as gems
 from gx_rings import GemSpec, bezel_cup, halo, prong_head
+
+# Gem materials by gemstone id, set by build_jewellery.py, for accents that are not diamond (pink pave, matching drops).
+GEM_MATS = {}
+
+
+def gem_mat(gem_id, fallback):
+    return GEM_MATS.get(gem_id, fallback)
+
+
+def center_spec(piece, shapes):
+    """The centre stone a piece is modelled around: the piece's own default size if it has one, else the cut's."""
+    shape = shapes[piece["defaultShapeId"]]
+    return GemSpec(shape["id"], piece.get("defaultStoneLengthMm", shape["defaultLengthMm"]),
+                   piece.get("defaultStoneWidthMm", piece.get("defaultStoneLengthMm", shape["defaultWidthMm"])))
+
+
+def pave_stone(size, sides=8):
+    """Low-poly round accent for pave work (33 faces at 8 sides, 19 at 6): reads as a brilliant at 1 mm, and a flower
+    carries ~150 of them."""
+    r, rt, zc, zp = size / 2, size * 0.28, size * 0.16, -size * 0.42
+    st = 360.0 / sides
+    g = [[r * math.cos(math.radians(st * k)), r * math.sin(math.radians(st * k)), 0.0] for k in range(sides)]
+    t = [[rt * math.cos(math.radians(st * k + st / 2)), rt * math.sin(math.radians(st * k + st / 2)), zc] for k in range(sides)]
+    faces = [list(range(sides, 2 * sides))]
+    for k in range(sides):
+        k2 = (k + 1) % sides
+        faces += [[k, k2, sides + k], [sides + k, k2, sides + k2], [k2, k, 2 * sides]]
+    return np.array(g + t + [[0.0, 0.0, zp]]), faces
+
 
 # ----------------------------------------------------------------------------------------- small helpers
 
@@ -254,59 +287,241 @@ def spring_clasp(centre, tangent, normal, wire=0.4, radius=1.7):
 
 # ----------------------------------------------------------------------------------------- drop pendant
 
-def _anchor_and_head(style, spec, prong_r):
-    """Head MeshBuilders (mount-local) for a pendant head, its anchor point A on the top of the head,
-    and the depth of its back."""
+def _arc_sampler(path):
+    """f(fraction) -> (point, unit outward normal) at an equal-arc-length fraction round a closed 2D offset path."""
+    seg = np.linalg.norm(np.roll(path, -1, axis=0) - path, axis=1)
+    cum, total = np.concatenate([[0.0], np.cumsum(seg)]), seg.sum()
+
+    def at(frac):
+        d = (frac % 1.0) * total
+        k = min(int(np.searchsorted(cum, d, side="right") - 1), len(path) - 1)
+        f = (d - cum[k]) / max(seg[k], 1e-9)
+        a, b = path[k], path[(k + 1) % len(path)]
+        t = (b - a) / max(np.linalg.norm(b - a), 1e-9)
+        return a * (1 - f) + b * f, np.array([t[1], -t[0]])
+    return at
+
+
+def claw_halo(spec, base_z, accent_size=1.4, clearance=0.4, claw_r=0.27):
+    """Halo whose accents are parted by pointed claws reaching outward, the starburst look of a classic cluster."""
+    frame_mb, centres, z_acc, acc = halo(spec, base_z, accent_size=accent_size, clearance=clearance)
+    pts, nrm = spec.loop(240)
+    offset = clearance + accent_size / 2.0
+    path = pts + nrm * offset
+    at, n = _arc_sampler(path), len(centres)
+    t0 = path[1] - path[0]
+    sign = 1.0 if t0[0] * path[0][1] - t0[1] * path[0][0] <= 0 else -1.0     # make the sampler's normal point outward
+    for i in range(n):
+        c, nn = at((i + 0.5) / n)
+        nn = nn * sign
+        base = [*(c + nn * (accent_size * 0.18)), z_acc - 0.15]
+        mid = [*(c + nn * (accent_size * 0.45)), z_acc + 0.16]
+        tip = [*(c + nn * (accent_size * 0.68 + 0.08)), z_acc + 0.04]
+        line = gx.catmull_rom([base, base, mid, tip, tip], 5)
+        frame_mb.add(*gx.tube(line, np.linspace(claw_r * 1.15, 0.1, len(line)), 8))
+    return frame_mb, centres, z_acc, acc
+
+
+def flower_head(spec, piece, base_drop=0.6):
+    """Five pave-set petals round a claw-set centre stone (mount-local, girdle at z = 0, top petal along +Y).
+    Returns (petal metal MeshBuilder, {accent mesh name: MeshBuilder}, z of the petal backs, tip of the top petal)."""
+    L, W = piece.get("petalLengthMm", 6.5), piece.get("petalWidthMm", 5.2)
+    size = piece.get("paveStoneMm", 0.8)
+    pitch = size + 0.08
+    r_in = max(1.2, spec.width / 2 - 0.45)
+    c, z0, tilt, slab = r_in + L / 2, -0.55, 0.07, 0.6
+    hw = lambda cu: (W / 2) * math.sqrt(max(1 - cu * cu, 0.0)) * (0.78 + 0.16 * (1 + cu))
+    zf = lambda u: z0 + tilt * (u - r_in)
+    rng = np.random.default_rng(piece.get("paveSeed", 11))
+    pv, pf = pave_stone(size)
+    metal, white, pink = gx.MeshBuilder(), gx.MeshBuilder(), gx.MeshBuilder()
+    for k in range(5):
+        phi = math.radians(90 + 72 * k)
+        a, b = np.array([math.cos(phi), math.sin(phi)]), np.array([-math.sin(phi), math.cos(phi)])
+        ts = np.linspace(0, 2 * math.pi, 72, endpoint=False)
+        uv = [(c + (L / 2) * math.cos(t), math.copysign(hw(math.cos(t)), math.sin(t))) for t in ts]
+        top = np.array([[*(u * a + v * b), zf(u)] for u, v in uv])
+        bot = top - [0, 0, slab]
+        cen = np.array([*(c * a), zf(c)])
+        n = len(top)
+        verts = np.vstack([top, bot, [cen, cen - [0, 0, slab]]])
+        faces = [[2 * n, i, (i + 1) % n] for i in range(n)] + [[2 * n + 1, n + (i + 1) % n, n + i] for i in range(n)]
+        faces += [[i, n + i, n + (i + 1) % n, (i + 1) % n] for i in range(n)]
+        metal.add(verts, faces)
+        metal.add(*gx.tube(top + [0, 0, 0.12], 0.27, 8, closed=True))               # raised rim round the petal
+        # pave on a hex grid, inset from the rim and clear of the centre claws
+        normal = np.array([*(-tilt * a), 1.0])
+        normal /= np.linalg.norm(normal)
+        R = frame(normal, [*a, 0.0])
+        for j in range(-12, 13):
+            v = j * pitch * 0.866
+            for i in range(-2, 40):
+                u = r_in + 0.35 + i * pitch + (pitch / 2 if j % 2 else 0.0)
+                cu = (u - c) / (L / 2)
+                if abs(cu) > 1 - 0.55 / (L / 2) or abs(v) > hw(cu) - 0.5 or math.hypot(u, v) < spec.width / 2 + 0.75:
+                    continue
+                side = abs(v) / max(hw(cu), 1e-6)
+                is_pink = rng.random() < 0.18 + 0.62 * (1 - side ** 1.4) * (1 - 0.35 * (u - r_in) / L)
+                place(pink if is_pink else white, pv, pf, R, [*(u * a + v * b), zf(u) + 0.1])
+    plate = [[(r_in + 0.7) * math.cos(t), (r_in + 0.7) * math.sin(t)] for t in np.linspace(0, 2 * math.pi, 40, endpoint=False)]
+    metal.add(*_prism(plate, z0 - slab, z0))                                          # fills between the petal roots
+    for mb in (white, pink):
+        mb.count, mb.size = sum(len(v) for v in mb.verts) // 17, size
+    tip = np.array([0.0, r_in + L + 0.25, zf(r_in + L) - 0.3])
+    return metal, {"Accent_Pave": white, "AccentPink_Pave": pink}, z0 - slab, tip
+
+
+def _anchor_and_head(style, spec, prong_r, top=1, piece=None):
+    """Head MeshBuilders (mount-local) for a pendant or earring head, its accent meshes ({name: MeshBuilder}), its
+    anchor point A on the top of the head, the depth of its back, and `rim(az)`: a point on the outer edge of the head
+    at a polar angle. top = -1 hangs the stone the other way up (a pear with its point to the bail)."""
     pav = spec.pavilion
     base_z = -(pav + 0.9)
-    heads, accents = {}, None
+    heads, accents = {}, {}
+
+    def edge(out, z):
+        def rim(az):
+            p, n = spec.at(az)
+            return np.array([*(p + n * out), z])
+        return rim
     if style == "solitaire":
         mb = prong_head(spec, [45, 135, 225, 315], base_z, prong_r=prong_r)
         mb.add(*gx.tube(np.array([[1.15 * math.cos(a), 1.15 * math.sin(a), base_z]
                                   for a in np.linspace(0, 2 * math.pi, 24, endpoint=False)]), 0.36, 8, closed=True))
         heads["Head_Center"] = mb
         A = np.array([0.0, 0.43 * spec.length + 0.9 * prong_r + 0.15, -0.42 * pav])
-    elif style == "halo":
-        heads["Head_Center"] = prong_head(spec, [45, 135, 225, 315], base_z, prong_r=0.36, tip_lean=0.25)
-        frame_mb, centres, z_acc, acc = halo(spec, base_z)
-        heads["Halo_Frame"] = frame_mb
-        av, af = unit_gem("round", acc.width, acc.length, acc.depth)
-        accents = gx.MeshBuilder()
-        accents.count, accents.size = len(centres), acc.width
-        for c in centres:
-            accents.add(av + [c[0], c[1], z_acc], af)
-        offset, half = 0.35 + acc.width / 2, acc.width / 2 + 0.22
-        bottom, top = z_acc - acc.pavilion - 0.15, z_acc - 0.06
-        A = np.array([0.0, spec.length / 2 + offset + half - 0.2, (bottom + top) / 2])
+        rim = edge(0.9 * prong_r + 0.15, -0.42 * pav)
+    elif style in ("halo", "claw_halo", "double_halo"):
+        prongs = [45, 135, 225, 315] if spec.cut != "pear" else [270, 15, 165, 65, 115]
+        heads["Head_Center"] = prong_head(spec, prongs, base_z, prong_r=0.36 if style == "halo" else 0.34,
+                                          tip_lean=0.25)
+        if style == "halo":
+            frame_mb, centres, z_acc, acc = halo(spec, base_z)
+            rows = [(frame_mb, centres, z_acc, acc)]
+            offset = 0.35 + acc.width / 2
+        elif style == "claw_halo":
+            rows = [claw_halo(spec, base_z, accent_size=piece.get("haloStoneMm", 1.4))]
+            offset = 0.4 + rows[0][3].width / 2
+        else:
+            a1, a2 = piece.get("haloStoneMm", [1.1, 1.25])
+            inner = halo(spec, base_z, accent_size=a1, clearance=0.35)
+            c2 = 0.35 + a1 + 0.32
+            rows = [inner, halo(spec, base_z, accent_size=a2, clearance=c2)]
+            offset = c2 + a2 / 2
+        frame_all, accents_mb = gx.MeshBuilder(), gx.MeshBuilder()
+        accents_mb.count, accents_mb.size = 0, rows[0][3].width
+        for frame_mb, centres, z_acc, acc in rows:
+            frame_all.add(*arrays(frame_mb))
+            av, af = unit_gem("round", acc.width, acc.length, acc.depth)
+            for c in centres:
+                accents_mb.add(av + [c[0], c[1], z_acc], af)
+            accents_mb.count += len(centres)
+        heads["Halo_Frame"] = frame_all
+        accents["Accent_Halo"] = accents_mb
+        acc, z_acc = rows[-1][3], rows[-1][2]
+        half = acc.width / 2 + 0.22
+        bottom, top_z = z_acc - acc.pavilion - 0.15, z_acc - 0.06
+        rim = edge(offset + half - 0.2, (bottom + top_z) / 2)
+        A = np.array([0.0, spec.length / 2 + offset + half - 0.2, (bottom + top_z) / 2]) if style == "halo" \
+            else rim(90 if top > 0 else 270)
     elif style == "bezel":
         heads["Bezel"] = bezel_cup(spec, base_z)
         A = np.array([0.0, spec.length / 2 + 0.7, -0.6])
+        rim = edge(0.7, -0.6)
+    elif style == "flower":
+        petals, accents, back, A = flower_head(spec, piece)
+        base_z = min(back, -pav) - 0.05
+        heads["Head_Center"] = prong_head(spec, [0, 60, 120, 180, 240, 300], back + 0.1, prong_r=0.32, tip_lean=0.2)
+        heads["Halo_Petals"] = petals
+        rim = lambda az: np.array([*(np.array([math.cos(math.radians(az)), math.sin(math.radians(az))]) * (A[1] - 0.3)), A[2]])
     else:
         raise ValueError(style)
-    return heads, accents, A, base_z
+    return heads, accents, A, base_z, rim
 
 
-def drop_pendant(col, root, style, spec, P, metal, accent_mat, prong_r=0.45, bail_r=1.15, bail_wire=0.48):
-    """Hangs a stone pendant from a bail around the chain at world point P (front centre of the necklace).
-    The pendant lies on the slope of the chest below P. Returns (mount object, mount position mm)."""
-    heads, accents, A, back = _anchor_and_head(style, spec, prong_r)
+def build_accents(accents, col, accent_mat, parent, gems=None):
+    """Builds each accent mesh: Accent_* in diamond; a name matching a prefix in `gems` (the catalogue's accentGems,
+    default AccentPink -> pink sapphire) in that gemstone."""
+    gems = gems or {"AccentPink": "pink_sapphire"}
+    for name, mb in accents.items():
+        if not mb.verts:
+            continue
+        key = next((k for k in gems if name.startswith(k) and gems[k] != "center"), None)
+        mb.build(name, col, gem_mat(gems[key], accent_mat) if key else accent_mat, smooth=False, parent=parent)
+    return sum(getattr(mb, "count", 0) for mb in accents.values()), max([getattr(mb, "size", 0.0) for mb in accents.values()] or [0.0])
+
+
+def hanging_drop(col, parent, B, drop, metal, stone_mat, name):
+    """A jump ring, a short cable chain and a claw-set drop stone hanging from point B (parent-local) along local -Y,
+    in its own empty at B so the app can keep it on the bottom of the head without scaling it."""
+    spec = GemSpec(drop["shapeId"], drop["lengthMm"], drop["widthMm"])
+    holder = gx.empty(name, col, B, parent=parent)
+    mb = gx.MeshBuilder()
+    rr, wire = 0.72, 0.26
+    ring_c = np.array([0.0, -rr * 0.55, 0.0])
+    mb.add(*gx.tube(np.array([ring_c + [0, rr * math.cos(a), rr * math.sin(a)]
+                              for a in np.linspace(0, 2 * math.pi, 18, endpoint=False)]), wire, 8, closed=True))
+    start, end = ring_c - [0, rr * 0.9, 0], ring_c - [0, rr * 0.9 + drop["chainMm"], 0]
+    mb.add(*arrays(cable_chain(np.array([start, end]), closed=False, link=1.7, wire=0.22, surface=False)))
+    low_c = end - [0, 0.45, 0]
+    mb.add(*gx.tube(np.array([low_c + [rr * 0.8 * math.cos(a), rr * 0.8 * math.sin(a), 0]
+                              for a in np.linspace(0, 2 * math.pi, 16, endpoint=False)]), wire, 8, closed=True))
+    p_top, _ = spec.at(90)
+    loop_c = low_c - [0, rr * 0.8 + 0.25, 0]
+    mb.add(*gx.tube(np.array([loop_c + [0, 0.55 * math.cos(a), 0.55 * math.sin(a)]
+                              for a in np.linspace(0, 2 * math.pi, 16, endpoint=False)]), 0.24, 8, closed=True))
+    S = loop_c - [0, 0.55 + p_top[1] + 0.35, 0]
+    hv, hf = arrays(prong_head(spec, [45, 135, 225, 315], -(spec.pavilion + 0.5), prong_r=0.34, tip_lean=0.22))
+    mb.add(hv + S, hf)
+    mb.add(*gx.tube(np.array([loop_c - [0, 0.5, 0.15], S + [0, p_top[1] + 0.1, -spec.pavilion * 0.4]]), 0.26, 8))
+    mb.build(name.replace("Drop_", "Drop_Chain_"), col, metal, parent=holder)
+    gv, gf = unit_gem(spec.cut, spec.width, spec.length, spec.depth)
+    gx.MeshBuilder().add(gv + S, gf).build(name.replace("Drop_", "AccentMatch_Drop_"), col, stone_mat, smooth=False, parent=holder)
+    return holder
+
+
+def _chest_frame(P, spec_len, top=1):
+    """Rotation for a pendant lying on the slope of the chest below P: columns = mount local axes in world.
+    top = -1 turns it upside down about its own table normal."""
     zf = lambda z: bust_point(math.pi, z)[1]
     slope = (zf(P[2]) - zf(P[2] - 14.0)) / 14.0               # how far the chest leans forward per mm down
     theta = math.pi / 2 - math.atan(slope)
-    up = np.array([0.0, math.cos(theta), math.sin(theta)])     # pendant local +Y in world
+    up = np.array([0.0, math.cos(theta), math.sin(theta)])     # pendant "up" in world
     nz = np.array([0.0, -math.sin(theta), math.cos(theta)])    # local +Z (out of the table) in world
-    R = np.column_stack([[1.0, 0.0, 0.0], up, nz])
-    S0 = np.array([0.0, zf(P[2] - spec.length * 0.6), P[2] - spec.length * 0.6])
-    m_up = P @ up - (bail_r + bail_wire + 1.1) - A[1]
+    R = np.column_stack([[float(top), 0.0, 0.0], up * top, nz])
+    S0 = np.array([0.0, zf(P[2] - spec_len * 0.6), P[2] - spec_len * 0.6])
+    return R, up, nz, S0
+
+
+def _euler_deg(R):
+    from mathutils import Matrix
+    return tuple(math.degrees(a) for a in Matrix(np.asarray(R).tolist()).to_euler("XYZ"))
+
+
+def drop_pendant(col, root, style, spec, P, metal, accent_mat, prong_r=0.45, bail_r=1.15, bail_wire=0.48,
+                 top=1, piece=None):
+    """Hangs a stone pendant from a bail around the chain at world point P (front centre of the necklace).
+    The pendant lies on the slope of the chest below P. Returns (mount object, mount position mm)."""
+    heads, accents, A, back, _rim = _anchor_and_head(style, spec, prong_r, top, piece or {})
+    R, up, nz, S0 = _chest_frame(P, spec.length, top)
+    m_up = P @ up - (bail_r + bail_wire + 1.1) - (R @ A) @ up
     m_n = S0 @ nz + 0.35 - back                                 # the pendant's back rests on the velvet
     M = m_up * up + m_n * nz
-    mount = gx.empty("GemMount_Center", col, M, (math.degrees(theta), 0, 0), parent=root)
+    mount = gx.empty("GemMount_Center", col, M, _euler_deg(R), parent=root)
     for name, mb in heads.items():
         mb.build(name, col, metal, parent=mount)
-    if accents is not None:
-        accents.build("Accent_Halo", col, accent_mat, smooth=False, parent=mount)
+    count, size = build_accents(accents, col, accent_mat, mount)
 
-    # Bail: a teardrop loop from the top of the head, round the chain and back (built in world, stored local).
+    _build_bail(col, mount, M, R, A, P, up, nz, metal, bail_r, bail_wire)
+    mount["accentStones"] = count
+    mount["accentSizeMm"] = size
+    return mount, M
+
+
+def _build_bail(col, mount, M, R, A, P, up, nz, metal, bail_r=1.15, bail_wire=0.48, origin=None):
+    """Bail: a teardrop loop from A on the head (mount-local), round the chain at P and back (built in world,
+    stored local). `origin` is the Attach_Bail object's origin, which the app scales the head about: A by default."""
+    origin = A if origin is None else np.asarray(origin, float)
     Aw = M + R @ A
     rr = bail_r + bail_wire
     ctrl = [Aw + up * 0.2 - nz * 0.35,
@@ -321,11 +536,8 @@ def drop_pendant(col, root, style, spec, P, metal, accent_mat, prong_r=0.45, bai
     bail.add(*gx.tube(loop, bail_wire, 10, closed=True))
     bail.add(*gx.sphere(Aw, bail_wire * 1.25, 12, 8))
     local = lambda v: (np.asarray(v) - M) @ R                  # world -> mount-local
-    bail.verts = [local(v) - A for v in bail.verts]
-    bail.build("Attach_Bail", col, metal, parent=mount, location_mm=A)
-    mount["accentStones"] = getattr(accents, "count", 0)
-    mount["accentSizeMm"] = getattr(accents, "size", 0.0)
-    return mount, M
+    bail.verts = [local(v) - origin for v in bail.verts]
+    bail.build("Attach_Bail", col, metal, parent=mount, location_mm=origin)
 
 
 # ----------------------------------------------------------------------------------------- pendants & necklaces
@@ -338,14 +550,14 @@ def build_pendant(piece, shapes, metal, accent_mat, col):
     """Pendant on a fine 18-inch cable chain, on the bust."""
     root = gx.empty(piece["modelFile"], col, size_mm=6)
     path, _drop = necklace_path(piece.get("chainLengthMm", 450))
-    cable_chain(path).build("Chain", col, metal, parent=root)
+    cable_chain(path, link=piece.get("chainLinkMm", 2.3), wire=piece.get("chainWireMm", 0.28)).build("Chain", col, metal, parent=root)
     p0, t0 = path[0], path[1] - path[0]
     spring_clasp(p0 + np.array([0, 1.2, 0]), t0, surface_normal_near(p0)).build("Clasp", col, metal, parent=root)
-    shape = shapes[piece["defaultShapeId"]]
-    spec = GemSpec(shape["id"], shape["defaultLengthMm"], shape["defaultWidthMm"])
+    spec = center_spec(piece, shapes)
     P = path[front_index(path)]
-    mount, M = drop_pendant(col, root, piece["pendantStyle"], spec, P, metal, accent_mat)
-    meta = _meta(piece, spec, M, (math.degrees(mount.rotation_euler.x), 0, 0))
+    mount, M = drop_pendant(col, root, piece["pendantStyle"], spec, P, metal, accent_mat,
+                            top=-1 if piece.get("pointUp") else 1, piece=piece)
+    meta = _meta(piece, spec, M, [math.degrees(a) for a in mount.rotation_euler])
     if mount["accentStones"]:
         meta["accentStones"], meta["accentSizeMm"] = mount["accentStones"], round(mount["accentSizeMm"], 2)
     return root, meta, [("Center", spec)]
@@ -469,6 +681,179 @@ def build_station(piece, shapes, metal, accent_mat, col):
     meta["accentStones"] = 2 * len(piece.get("stationOffsetsMm", [28, 58, 90]))
     meta["accentSizeMm"] = size
     return root, meta, [("Center", cspec)]
+
+
+def build_lariat(piece, shapes, metal, accent_mat, col):
+    """Y necklace: the chain meets at a halo-set centre stone, and a second chain hangs a claw-set drop below it."""
+    root = gx.empty(piece["modelFile"], col, size_mm=6)
+    path, _ = necklace_path(piece.get("chainLengthMm", 450))
+    fi = front_index(path)
+    seg = np.linalg.norm(np.roll(path, -1, axis=0) - path, axis=1)
+    cum = np.concatenate([[0.0], np.cumsum(seg)])
+    d_front, P = cum[fi], path[fi]
+    spec = center_spec(piece, shapes)
+    heads, accents, A, back, rim = _anchor_and_head("halo", spec, 0.42, 1, piece)
+    R, up, nz, S0 = _chest_frame(P, spec.length)
+    m_up = P @ up - 0.9 - A[1]                                  # the top of the halo sits just under the chain line
+    m_n = S0 @ nz + 0.35 - back
+    M = m_up * up + m_n * nz
+    mount = gx.empty("GemMount_Center", col, M, _euler_deg(R), parent=root)
+    for name, mb in heads.items():
+        mb.build(name, col, metal, parent=mount)
+    count, size = build_accents(accents, col, accent_mat, mount)
+
+    # Jump rings on the halo's shoulders take the two chain ends (fixed: the app scales the head about A).
+    rings, ends = gx.MeshBuilder(), []
+    for az in (90 - piece.get("shoulderDeg", 52), 90 + piece.get("shoulderDeg", 52)):
+        p, n = spec.at(az)
+        q = rim(az)
+        c = q + np.array([*(n * 0.55), 0.0])
+        t = np.array([-n[1], n[0], 0.0])
+        rings.add(*gx.tube(np.array([c + 0.72 * (math.cos(a) * np.array([*n, 0.0]) + math.sin(a) * np.array([0, 0, 1.0]))
+                                     for a in np.linspace(0, 2 * math.pi, 18, endpoint=False)]), 0.27, 8, closed=True))
+        ends.append(M + R @ (c + np.array([*(n * 0.6), 0.0])))
+    rings.verts = [v - A for v in rings.verts]
+    rings.build("Attach_Bail", col, metal, parent=mount, location_mm=A)
+
+    # Chain: round the back of the neck, then down to each ring.
+    cut = max(abs((e - P) @ np.array([1.0, 0, 0])) for e in ends) + 6.0
+    back_pts = np.array([arc_point(path, d)[0] for d in np.linspace(d_front + cut, d_front - cut + cum[-1], 500)])
+    e_plus = min(ends, key=lambda e: np.linalg.norm(e - back_pts[0]))
+    e_minus = max(ends, key=lambda e: np.linalg.norm(e - back_pts[0]))
+    cable_chain(np.vstack([e_plus, back_pts, e_minus]), closed=False).build("Chain", col, metal, parent=root)
+    p0 = path[0]
+    spring_clasp(p0 + np.array([0, 1.2, 0]), path[1] - p0, surface_normal_near(p0)).build("Clasp", col, metal, parent=root)
+
+    hanging_drop(col, mount, rim(270) + [0, -0.3, 0.15], piece["drop"], metal,
+                 gem_mat(piece["defaultGemstoneId"], accent_mat), "Drop_Center")
+    meta = _meta(piece, spec, M, [math.degrees(a) for a in mount.rotation_euler])
+    meta["accentStones"], meta["accentSizeMm"] = count, round(size, 2)
+    return root, meta, [("Center", spec)]
+
+
+# ----------------------------------------------------------------------------------------- starburst pendant
+
+def _radial(phi):
+    return np.array([math.cos(phi), math.sin(phi), 0.0]), np.array([-math.sin(phi), math.cos(phi), 0.0])
+
+
+def starburst_parts(spec, piece):
+    """A firework of coloured sprays round a centre stone (mount-local, girdle at z = 0, +Y up).
+    Returns (scaled head meshes, scaled accent meshes, fixed burst metal, fixed burst accent meshes, back z, top z)."""
+    # Centre: six claws and a ring of small pink accents, scaled with the stone by the app.
+    heads = {"Head_Center": prong_head(spec, [0, 60, 120, 180, 240, 300], -(spec.pavilion + 0.6), prong_r=0.36, tip_lean=0.22)}
+    halo_metal, halo_pink = gx.MeshBuilder(), gx.MeshBuilder()
+    hs = piece.get("haloStoneMm", 1.2)
+    hspec = GemSpec("round", hs, hs)
+    r_h = spec.width / 2 + 0.3 + hs / 2
+    hv, hf = unit_gem("round", hs, hs, hspec.depth)
+    cv, cf = _collet(hspec, prong_r=0.22)
+    n_h = int(2 * math.pi * r_h // (hs + 0.45))
+    for k in range(n_h):
+        a, t = _radial(2 * math.pi * k / n_h)
+        R = frame([0, 0, 1], t)
+        c = a * r_h + [0, 0, -0.35]
+        place(halo_pink, hv, hf, R, c)
+        place(halo_metal, cv, cf, R, c)
+    halo_metal.add(*gx.tube(np.array([[r_h * math.cos(u), r_h * math.sin(u), -0.35 - hspec.pavilion * 0.6]
+                                      for u in np.linspace(0, 2 * math.pi, 48, endpoint=False)]), 0.32, 8, closed=True))
+    heads["Halo_Frame"] = halo_metal
+    halo_pink.count, halo_pink.size = n_h, hs
+
+    # Burst: fixed, so a bigger centre stone does not blow the whole pendant up.
+    metal, pave = gx.MeshBuilder(), gx.MeshBuilder()
+    sprays = {}
+    L, W = piece.get("sprayStoneMm", [3.2, 2.2])
+    ospec = GemSpec("oval", L, W)
+    ov, of = unit_gem("oval", W, L, ospec.depth)
+    ocv, ocf = _collet(ospec, prong_r=0.25)
+    zs = lambda r: -0.35 - 0.045 * (r - 5.0)                    # a gentle dome, lower towards the tips
+    r0 = piece.get("sprayInnerMm", 6.2)
+    for sector in piece["sprays"]:                               # [{"name": "AccentGarnet_Spray", "deg": 60, "stones": [3, 2]}]
+        mb = sprays.setdefault(sector["name"], gx.MeshBuilder())
+        for arm, (n, da, start) in enumerate(zip(sector.get("stones", [3, 2]), (-13, 13), (r0, r0 + 1.5))):
+            phi = math.radians(sector["deg"] + da)
+            a, t = _radial(phi)
+            for k in range(n):
+                r = start + k * (L + 0.15)
+                R = frame([0, 0, 1], t)
+                c = a * r + [0, 0, zs(r)]
+                place(mb, ov, of, R, c)
+                place(metal, ocv, ocf, R, c)
+            r_end = start + (n - 1) * (L + 0.15)
+            metal.add(*gx.tube(np.array([a * 4.2 + [0, 0, zs(4.2) - ospec.pavilion * 0.75],
+                                         a * r_end + [0, 0, zs(r_end) - ospec.pavilion * 0.75]]), 0.38, 8))
+        # a slim gold ray between the two arms
+        a, t = _radial(math.radians(sector["deg"]))
+        ray = [a * r + t * 0.35 * math.sin(math.pi * (r - 8) / 6) + [0, 0, zs(r) - 0.1] for r in np.linspace(8.0, 14.0, 14)]
+        metal.add(*gx.tube(np.array(ray), np.linspace(0.32, 0.12, 14), 8))
+    for k, b in enumerate(piece.get("rays", [])):                # {"deg": 90, "kind": "gold"|"pave", "to": 16}
+        a, t = _radial(math.radians(b["deg"]))
+        r1 = b.get("to", 15.5)
+        if b["kind"] == "gold":
+            ray = [a * r + t * 0.6 * math.sin(math.pi * (r - 4.5) / (r1 - 4.5)) * (1 if k % 2 else -1) + [0, 0, zs(r) - 0.05]
+                   for r in np.linspace(4.5, r1, 24)]
+            metal.add(*gx.tube(np.array(ray), np.linspace(0.5, 0.14, 24), 10))
+        else:                                                    # a tapering strip set with a line of small accents
+            ps = 0.9
+            pspec = GemSpec("round", ps, ps)
+            pv, pf = unit_gem("round", ps, ps, pspec.depth)
+            strip, rr = [], np.linspace(5.5, r1, 12)
+            for r in rr:
+                w = 0.75 - 0.25 * (r - 5.5) / (r1 - 5.5)
+                strip.append((a * r + t * w)[:2])
+            for r in rr[::-1]:
+                w = 0.75 - 0.25 * (r - 5.5) / (r1 - 5.5)
+                strip.append((a * r - t * w)[:2])
+            sv, sf = _prism(strip, -0.9, -0.25)
+            sv[:, 2] += [zs(np.hypot(x, y)) + 0.35 for x, y in sv[:, :2]]
+            metal.add(sv, sf)
+            R = frame([0, 0, 1], t)
+            for r in np.arange(7.0, r1 - 0.4, ps + 0.18):
+                place(pave, pv, pf, R, a * r + [0, 0, zs(r) + 0.05])
+                for sgn in (-1, 1):                              # bead prongs either side
+                    metal.add(*gx.sphere(a * (r + ps / 2 + 0.09) + t * sgn * 0.42 + [0, 0, zs(r) + 0.12], 0.14, 6, 4))
+            pave.count = getattr(pave, "count", 0) + len(np.arange(7.0, r1 - 0.4, ps + 0.18))
+    plate = [[5.2 * math.cos(u), 5.2 * math.sin(u)] for u in np.linspace(0, 2 * math.pi, 40, endpoint=False)]
+    pv_, pf_ = _prism(plate, -2.0, -1.4)
+    metal.add(pv_, pf_)
+    pave.size = 0.9
+    for name, mb in sprays.items():
+        mb.count, mb.size = len(mb.verts), L
+    burst_acc = dict(sprays, Accent_PaveRays=pave)
+    top = max(b.get("to", 15.5) for b in piece.get("rays", []) if abs(b["deg"] - 90) < 1)
+    return heads, {"AccentPink_Halo": halo_pink}, metal, burst_acc, min(-2.0, -spec.pavilion) - 0.05, top
+
+
+def build_starburst(piece, shapes, metal, accent_mat, col):
+    """Firework pendant on a heavier chain: the bail sits behind the top ray, and the app scales the centre head about
+    the centre (the bail and the burst stay fixed)."""
+    root = gx.empty(piece["modelFile"], col, size_mm=6)
+    path, _ = necklace_path(piece.get("chainLengthMm", 450))
+    cable_chain(path, link=piece.get("chainLinkMm", 2.3), wire=piece.get("chainWireMm", 0.28)).build("Chain", col, metal, parent=root)
+    p0 = path[0]
+    spring_clasp(p0 + np.array([0, 1.2, 0]), path[1] - p0, surface_normal_near(p0)).build("Clasp", col, metal, parent=root)
+    spec = center_spec(piece, shapes)
+    heads, accents, burst_metal, burst_acc, back, top = starburst_parts(spec, piece)
+    P = path[front_index(path)]
+    A = np.array([0.0, top - 3.0, -1.2])                        # bail fixing, behind the top ray
+    bail_r, bail_wire = 1.3, 0.55
+    R, up, nz, S0 = _chest_frame(P, 30.0)
+    m_up = P @ up - (bail_r + bail_wire + 1.1) - A[1]
+    m_n = S0 @ nz + 0.35 - back
+    M = m_up * up + m_n * nz
+    mount = gx.empty("GemMount_Center", col, M, _euler_deg(R), parent=root)
+    for name, mb in heads.items():
+        mb.build(name, col, metal, parent=mount)
+    gems = piece.get("accentGems")
+    count, _ = build_accents(accents, col, accent_mat, mount, gems)
+    burst = gx.empty("Attach_Burst", col, (0, 0, 0), parent=mount)   # Attach_*: not scaled by the app
+    burst_metal.build("Halo_Rays", col, metal, parent=burst)
+    n_burst, _ = build_accents(burst_acc, col, accent_mat, burst, gems)
+    _build_bail(col, mount, M, R, A, P, up, nz, metal, bail_r, bail_wire, origin=(0.0, 0.0, 0.0))
+    meta = _meta(piece, spec, M, [math.degrees(a) for a in mount.rotation_euler])
+    meta["accentStones"], meta["accentSizeMm"] = count + n_burst, 0.9
+    return root, meta, [("Center", spec)]
 
 
 # ----------------------------------------------------------------------------------------- bracelets
@@ -639,34 +1024,53 @@ def butterfly_back(z0):
     return mb
 
 
-def _ear_meta(piece, spec, positions, accents):
-    meta = _meta(piece, spec, positions["Center"], EAR_ROT)
+def screw_back(z0):
+    """Screw back: a broad dished disc on a threaded barrel (mount-local, behind the lobe)."""
+    mb = gx.MeshBuilder()
+    disc = [[3.3 * math.cos(a), 3.3 * math.sin(a)] for a in np.linspace(0, 2 * math.pi, 40, endpoint=False)]
+    mb.add(*_prism(disc, z0 - 0.45, z0))
+    mb.add(*gx.tube(np.column_stack([np.array(disc) * 0.985, np.full(len(disc), z0 + 0.02)]), 0.22, 8, closed=True))
+    mb.add(*gx.tube(np.array([[0, 0, z0 + 0.1], [0, 0, z0 - 2.4]]), 0.85, 14))
+    for k in range(5):                                      # thread rings on the barrel
+        mb.add(*gx.tube(np.array([[0.86 * math.cos(a), 0.86 * math.sin(a), z0 - 0.75 - 0.32 * k]
+                                  for a in np.linspace(0, 2 * math.pi, 14, endpoint=False)]), 0.09, 6, closed=True))
+    return mb
+
+
+def _ear_meta(piece, spec, positions, count, size, rot=EAR_ROT):
+    meta = _meta(piece, spec, positions["Center"], rot)
     meta["pair"] = True
     meta["mounts"]["Pair"] = dict(meta["mounts"]["Center"], blenderPositionMm=[float(c) for c in positions["Pair"]])
-    if accents is not None:
-        meta["accentStones"], meta["accentSizeMm"] = accents.count * 2, round(accents.size, 2)
+    if count:
+        meta["accentStones"], meta["accentSizeMm"] = count * 2, round(size, 2)
     return meta
 
 
 def build_stud(piece, shapes, metal, accent_mat, col):
-    """A pair of studs (four-claw solitaire or halo) on posts with butterfly backs."""
+    """A pair of studs (solitaire, halo, claw halo or flower) on posts with butterfly or screw backs, optionally
+    with a chain and a claw-set drop hanging from the bottom of each head."""
     root = gx.empty(piece["modelFile"], col, size_mm=6)
-    shape = shapes[piece["defaultShapeId"]]
-    spec = GemSpec(shape["id"], shape["defaultLengthMm"], shape["defaultWidthMm"])
-    style, positions, accents = piece["earringStyle"], {}, None
+    spec = center_spec(piece, shapes)
+    top = -1 if piece.get("pointUp") else 1
+    rot = EAR_ROT if top > 0 else (-90.0, 0.0, 180.0)      # pointUp: also half a turn about the table normal
+    style, positions, count, size = piece["earringStyle"], {}, 0, 0.0
+    drop_mat = gem_mat(piece["defaultGemstoneId"], accent_mat)
     for mount_id, sx in (("Center", 1.0), ("Pair", -1.0)):
-        heads, accents, _A, base_z = _anchor_and_head(style, spec, 0.42)
-        M = (sx * EAR_X, base_z - 0.35, 0.0)            # the back of the head sits just in front of the velvet
-        mount = gx.empty(f"GemMount_{mount_id}", col, M, EAR_ROT, parent=root)
+        heads, accents, _A, base_z, rim = _anchor_and_head(style, spec, 0.42, top, piece)
+        M = (sx * EAR_X, base_z - 0.35, 0.0)            # the back of the head sits just in front of the lobe
+        mount = gx.empty(f"GemMount_{mount_id}", col, M, rot, parent=root)
         for name, mb in heads.items():
             mb.build(name, col, metal, parent=mount)
-        if accents is not None:
-            accents.build("Accent_Halo", col, accent_mat, smooth=False, parent=mount)
+        count, size = build_accents(accents, col, accent_mat, mount)
         gx.MeshBuilder().add(*gx.tube(np.array([[0, 0, base_z + 0.3], [0, 0, base_z - EAR_PANEL_T - 2.6]]), 0.42, 10)) \
             .build("Attach_Post", col, metal, parent=mount)
-        butterfly_back(base_z - 0.35 - EAR_PANEL_T - 0.45).build("Attach_Back", col, metal, parent=mount)
+        back_z = base_z - 0.35 - EAR_PANEL_T - 0.45
+        (screw_back(back_z) if piece.get("earringBack") == "screw" else butterfly_back(back_z)) \
+            .build("Attach_Back", col, metal, parent=mount)
+        if piece.get("drop"):                           # drops hang along local -Y, so not with pointUp
+            hanging_drop(col, mount, rim(270) + [0, -0.3, 0.15], piece["drop"], metal, drop_mat, f"Drop_{mount_id}")
         positions[mount_id] = M
-    return root, _ear_meta(piece, spec, positions, accents), [("Center", spec), ("Pair", spec)]
+    return root, _ear_meta(piece, spec, positions, count, size, rot), [("Center", spec), ("Pair", spec)]
 
 
 def build_drop(piece, shapes, metal, accent_mat, col):
@@ -674,15 +1078,14 @@ def build_drop(piece, shapes, metal, accent_mat, col):
     root = gx.empty(piece["modelFile"], col, size_mm=6)
     shape = shapes[piece["defaultShapeId"]]
     spec = GemSpec(shape["id"], shape["defaultLengthMm"], shape["defaultWidthMm"])
-    style, positions, accents = piece["earringStyle"], {}, None
+    style, positions, count, size = piece["earringStyle"], {}, 0, 0.0
     for mount_id, sx in (("Center", 1.0), ("Pair", -1.0)):
-        heads, accents, A, base_z = _anchor_and_head(style, spec, 0.42)
+        heads, accents, A, base_z, _rim = _anchor_and_head(style, spec, 0.42, 1, piece)
         M = (sx * EAR_X, base_z - 0.6, 0.0)
         mount = gx.empty(f"GemMount_{mount_id}", col, M, EAR_ROT, parent=root)
         for name, mb in heads.items():
             mb.build(name, col, metal, parent=mount)
-        if accents is not None:
-            accents.build("Accent_Halo", col, accent_mat, smooth=False, parent=mount)
+        count, size = build_accents(accents, col, accent_mat, mount)
         world, local = _ear_world(M), _ear_local(M)
         Aw = world(A)
         # Jump ring through the top of the head, then the hook: up, over and back, then down behind the lobe.
@@ -702,7 +1105,7 @@ def build_drop(piece, shapes, metal, accent_mat, col):
         mb.verts = [np.array([local(v) for v in block]) - A for block in mb.verts]
         mb.build("Attach_Bail", col, metal, parent=mount, location_mm=A)
         positions[mount_id] = M
-    meta = _ear_meta(piece, spec, positions, accents)
+    meta = _ear_meta(piece, spec, positions, count, size)
     return root, meta, [("Center", spec), ("Pair", spec)]
 
 
@@ -716,7 +1119,8 @@ def _meta(piece, spec, M, rot):
 
 
 BUILDERS = {"pendant": build_pendant, "riviera": build_riviera, "station": build_station,
-            "bangle": build_bangle, "tennis": build_tennis, "stud": build_stud, "drop": build_drop}
+            "bangle": build_bangle, "tennis": build_tennis, "stud": build_stud, "drop": build_drop,
+            "lariat": build_lariat, "starburst": build_starburst}
 
 
 def build_piece(piece, shapes, metal, accent_mat, col):

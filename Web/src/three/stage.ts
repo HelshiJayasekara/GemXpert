@@ -34,6 +34,9 @@ export class Stage {
   private headScaler: THREE.Group | null = null;
   private centerGem: THREE.Mesh | null = null;
   private twins: { scaler: THREE.Group; gem: THREE.Mesh }[] = [];   // the second earring of a pair follows the centre stone
+  private drops: { node: THREE.Object3D; z0: number }[] = [];        // chain drops (Drop_*): they ride on the bottom of the head, unscaled
+  private accentGemMats: Record<string, THREE.MeshPhysicalMaterial> = {};
+  private lastHome: { pos: THREE.Vector3; target: THREE.Vector3 } | null = null;                     // where the camera last framed a piece   // coloured accents, e.g. pink pave
   private loose = new THREE.Group();        // Gemstone Gallery: one loose stone on a small gem tray (millimetres)
   private looseInner = new THREE.Group();   // holds the stone, scaled like a ring root (m -> mm)
   private looseTray: THREE.Mesh;            // light felt pad: gives a transparent stone something to refract, so it shows its colour
@@ -131,6 +134,15 @@ export class Stage {
       ior: 1.77, specularIntensity: 1, envMapIntensity: 1.6, flatShading: true });
   }
 
+  private accentGemMat(gemId: string) {
+    if (!this.accentGemMats[gemId]) {
+      const mat = Stage.makeGem(), g = useApp.getState().cat?.gemstones.find((x) => x.id === gemId);
+      if (g) { this.styleGem(mat, g); mat.attenuationDistance = 0.9; }   // small stones: a shorter path for the same depth of colour
+      this.accentGemMats[gemId] = mat;
+    }
+    return this.accentGemMats[gemId];
+  }
+
   private styleGem(mat: THREE.MeshPhysicalMaterial, g: Gemstone) {
     const c = new THREE.Color(g.colorHex), isClear = g.id === "diamond";
     mat.color.copy(isClear ? new THREE.Color(0xffffff) : c.clone().lerp(new THREE.Color(0xffffff), 0.45));
@@ -168,18 +180,24 @@ export class Stage {
     this.ringRoot = root;
     root.scale.setScalar(1000);   // rings are in metres (GLB and generator alike); the stage works in millimetres
     const metalPrefixes = r.metalRendererPrefixes, accentPrefixes = r.accentStoneRendererPrefixes || [];
+    const accentGems = r.accentGems || {};
     root.traverse((o) => {
       const m = o as THREE.Mesh;
       if (!m.isMesh) return;
-      if (accentPrefixes.some((p) => m.name.startsWith(p))) m.material = this.accentMat;
+      const coloured = Object.keys(accentGems).find((p) => m.name.startsWith(p));
+      if (coloured) m.material = accentGems[coloured] === "center" ? this.gemMat : this.accentGemMat(accentGems[coloured]);
+      else if (accentPrefixes.some((p) => m.name.startsWith(p))) m.material = this.accentMat;
       else if (metalPrefixes.some((p) => m.name.startsWith(p))) m.material = this.metalMat;
     });
     // Wrap the centre head so it can follow the stone's footprint (the stone itself is a sibling).
     // A pendant bail (Attach_*) stays where it is on the chain; the head scales about it instead.
+    // A chain drop (Drop_*) is not scaled either: it moves so it stays on the bottom of the head.
+    this.drops = [];
     const wrapHead = (mount: THREE.Object3D) => {
       const scaler = new THREE.Group();
       scaler.name = "HeadScaler";
-      [...mount.children].filter((c) => !c.name.startsWith("Attach_")).forEach((c) => scaler.add(c));
+      [...mount.children].filter((c) => !c.name.startsWith("Attach_") && !c.name.startsWith("Drop_")).forEach((c) => scaler.add(c));
+      mount.children.filter((c) => c.name.startsWith("Drop_")).forEach((node) => this.drops.push({ node, z0: node.position.z }));
       mount.add(scaler);
       return scaler;
     };
@@ -241,6 +259,7 @@ export class Stage {
     this.headScaler!.position.set(0, 0, shift);
     this.centerGem!.scale.set(cur.d.widthMm, cur.depthMm, cur.d.lengthMm);
     this.centerGem!.position.set(cur.d.seat.x * 0.001, cur.d.seat.y * 0.001, cur.d.seat.z * 0.001 + shift);
+    for (const dr of this.drops) dr.node.position.z = this.anchorZ + (dr.z0 - this.anchorZ) * kz;
     for (const t of this.twins) {   // mirror twin: side-to-side seat offset flips
       t.scaler.scale.copy(this.headScaler!.scale); t.scaler.position.copy(this.headScaler!.position);
       t.gem.scale.copy(this.centerGem!.scale);
@@ -258,10 +277,22 @@ export class Stage {
     if (cat === "ring") return HOME;
     if (cat === "bracelet") return { pos: new THREE.Vector3(205, 58, 158), target: new THREE.Vector3(0, -6, 0) };
     if (cat === "necklace") return { pos: new THREE.Vector3(130, 95, 520), target: new THREE.Vector3(0, -5, 8) };      // the whole necklace
-    if (cat === "earring") return { pos: new THREE.Vector3(46, 26, 138), target: new THREE.Vector3(0, 5, 0) };       // the pair, front three-quarter
+    if (cat === "earring") {                                       // the pair, front three-quarter; drops hang lower, so frame them too
+      let cy = 5, k = 1;
+      if (this.ringRoot) {
+        this.ringRoot.updateWorldMatrix(true, true);
+        const box = new THREE.Box3().setFromObject(this.ringRoot);
+        cy = (box.min.y + box.max.y) / 2 + 2; k = Math.max(1, (box.max.y - box.min.y) / 24);
+      }
+      return { pos: new THREE.Vector3(46 * k, 26 * k + cy - 5, 138 * k), target: new THREE.Vector3(0, cy, 0) };
+    }
     // Pendant: the stone and bail with the chain rising either side of it.
-    const target = this.centerGem ? this.centerGem.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 9, 0)) : new THREE.Vector3(0, -33, 50);
-    return { pos: target.clone().add(new THREE.Vector3(62, 26, 175)), target };
+    // A big pendant (the starburst) is framed from further back.
+    let k = 1;
+    const mount = this.centerGem?.parent;
+    if (mount) { mount.updateWorldMatrix(true, true); const sz = new THREE.Box3().setFromObject(mount).getSize(new THREE.Vector3()); k = Math.max(1, Math.max(sz.x, sz.y) / 20); }
+    const target = this.centerGem ? this.centerGem.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 9 * Math.sqrt(k), 0)) : new THREE.Vector3(0, -33, 50);
+    return { pos: target.clone().add(new THREE.Vector3(62, 26, 175).multiplyScalar(k)), target };
   }
 
   /** Rings sit on the stand; every other piece is shown on its own. Frames the piece when the jewellery type changes. */
@@ -271,7 +302,12 @@ export class Stage {
     const finger = useApp.getState().onFinger;
     this.stand.visible = cat === "ring" && !finger && !this.looseOn;
     if (this.ringRoot) this.ringRoot.visible = !this.looseOn;
-    if (cat === this.displayCat) return;
+    if (cat === this.displayCat) {                                 // same type: reframe only if this piece sits elsewhere (a drop pair, a big pendant)
+      const h = this.home(cat);
+      const moved = this.lastHome && (h.target.distanceTo(this.lastHome.target) > 4 || h.pos.distanceTo(this.lastHome.pos) > 25);
+      if (!finger && !this.looseOn && moved) { this.lastHome = h; this.flyTo(h.pos, h.target); }
+      return;
+    }
     this.displayCat = cat;
     const k = SCALE[cat];
     this.controls.minDistance = 16 * Math.min(k, 2);
@@ -283,7 +319,7 @@ export class Stage {
     this.key.target.position.set(0, neck ? -30 : 0, neck ? 40 : 0);
     this.key.angle = big ? Math.PI / 6 : Math.PI / 7;
     this.key.intensity = cat === "bracelet" ? 2.3 : cat === "earring" ? 2.6 : big ? 2.4 : 3.2;
-    if (!finger && !this.looseOn) { const h = this.home(cat); this.flyTo(h.pos, h.target); }
+    if (!finger && !this.looseOn) { const h = this.home(cat); this.lastHome = h; this.flyTo(h.pos, h.target); }
   }
 
   // ------------------------------------------------------------------ gemstone gallery

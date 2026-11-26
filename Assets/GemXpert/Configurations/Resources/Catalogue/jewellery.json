@@ -173,6 +173,352 @@
       ]
     },
     {
+      "id": "pendant_pear_double_halo",
+      "category": "pendant",
+      "builder": "pendant",
+      "pendantStyle": "double_halo",
+      "pointUp": true,
+      "modelFile": "Pendant_PearDoubleHalo",
+      "display": "none",
+      "displayName": "Double Halo Pear Pendant",
+      "settingStyle": "Pear centre, point up, in two rows of bead-set accents",
+      "description": "A pear-cut centre framed by two rows of diamond-style accents, hanging point-up from a polished bail on an 18-inch cable chain.",
+      "chainLengthMm": 450,
+      "defaultMetalId": "white_gold",
+      "defaultGemstoneId": "blue_sapphire",
+      "defaultShapeId": "pear",
+      "defaultStoneLengthMm": 7.0,
+      "defaultStoneWidthMm": 4.8,
+      "haloStoneMm": [
+        1.05,
+        1.2
+      ],
+      "renderDistance": 1.25,
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band",
+        "Drop"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "pear",
+            "oval"
+          ],
+          "minLengthMm": 6.0,
+          "maxLengthMm": 9.0,
+          "minWidthMm": 4.0,
+          "maxWidthMm": 6.5,
+          "maxDepthMm": 4.8,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "pendant_pear_cluster",
+      "category": "pendant",
+      "builder": "pendant",
+      "pendantStyle": "claw_halo",
+      "pointUp": true,
+      "modelFile": "Pendant_PearCluster",
+      "display": "none",
+      "displayName": "Pear Cluster Pendant",
+      "settingStyle": "Pear centre in a claw-set halo with pointed claws",
+      "description": "Pointed claws part each accent in the halo, giving the starburst outline of a classic cluster. The pear hangs point-up.",
+      "chainLengthMm": 450,
+      "defaultMetalId": "yellow_gold",
+      "defaultGemstoneId": "pink_sapphire",
+      "defaultShapeId": "pear",
+      "defaultStoneLengthMm": 7.0,
+      "defaultStoneWidthMm": 5.0,
+      "haloStoneMm": 1.4,
+      "renderDistance": 1.2,
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band",
+        "Drop"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "pear",
+            "oval"
+          ],
+          "minLengthMm": 6.0,
+          "maxLengthMm": 9.0,
+          "minWidthMm": 4.2,
+          "maxWidthMm": 6.5,
+          "maxDepthMm": 5.0,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "pendant_blossom",
+      "category": "pendant",
+      "builder": "pendant",
+      "pendantStyle": "flower",
+      "modelFile": "Pendant_Blossom",
+      "display": "none",
+      "displayName": "Blossom Pendant",
+      "settingStyle": "Five pave petals round a claw-set centre",
+      "description": "Five raised petals pave-set with pink sapphires and diamond-style accents, round a small centre stone. Hangs from a bail on the top petal.",
+      "chainLengthMm": 450,
+      "defaultMetalId": "rose_gold",
+      "defaultGemstoneId": "ruby",
+      "defaultShapeId": "round",
+      "defaultStoneLengthMm": 3.5,
+      "petalLengthMm": 6.5,
+      "petalWidthMm": 5.2,
+      "paveStoneMm": 0.8,
+      "renderDistance": 1.5,
+      "accentGems": {
+        "AccentPink": "pink_sapphire"
+      },
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band",
+        "Drop"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "cushion"
+          ],
+          "minLengthMm": 3.0,
+          "maxLengthMm": 4.5,
+          "minWidthMm": 3.0,
+          "maxWidthMm": 4.5,
+          "maxDepthMm": 3.0,
+          "adjustRangeMm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "pendant_starburst",
+      "category": "pendant",
+      "builder": "starburst",
+      "modelFile": "Pendant_Starburst",
+      "display": "none",
+      "displayName": "Starburst Pendant",
+      "settingStyle": "Rainbow sprays of claw-set ovals round a pink halo centre",
+      "description": "Six sprays of claw-set ovals in pink sapphire, garnet, citrine, green zircon, blue topaz and amethyst burst from a halo-set centre, between gold and diamond-set rays. On a heavier chain.",
+      "chainLengthMm": 450,
+      "chainLinkMm": 2.8,
+      "chainWireMm": 0.36,
+      "defaultMetalId": "yellow_gold",
+      "defaultGemstoneId": "pink_sapphire",
+      "defaultShapeId": "round",
+      "defaultStoneLengthMm": 4.5,
+      "haloStoneMm": 1.2,
+      "sprayStoneMm": [
+        3.2,
+        2.2
+      ],
+      "sprayInnerMm": 6.2,
+      "sprays": [
+        {
+          "name": "AccentPink_Spray",
+          "gem": "pink_sapphire",
+          "deg": 120,
+          "stones": [
+            3,
+            2
+          ]
+        },
+        {
+          "name": "AccentGarnet_Spray",
+          "gem": "garnet",
+          "deg": 60,
+          "stones": [
+            2,
+            2
+          ]
+        },
+        {
+          "name": "AccentCitrine_Spray",
+          "gem": "citrine",
+          "deg": 0,
+          "stones": [
+            3,
+            2
+          ]
+        },
+        {
+          "name": "AccentZircon_Spray",
+          "gem": "zircon",
+          "deg": -60,
+          "stones": [
+            2,
+            2
+          ]
+        },
+        {
+          "name": "AccentTopaz_Spray",
+          "gem": "blue_topaz",
+          "deg": -120,
+          "stones": [
+            3,
+            2
+          ]
+        },
+        {
+          "name": "AccentAmethyst_Spray",
+          "gem": "amethyst",
+          "deg": 180,
+          "stones": [
+            3,
+            2
+          ]
+        }
+      ],
+      "rays": [
+        {
+          "deg": 90,
+          "kind": "gold",
+          "to": 16.5
+        },
+        {
+          "deg": 30,
+          "kind": "pave",
+          "to": 15.0
+        },
+        {
+          "deg": -30,
+          "kind": "gold",
+          "to": 16.0
+        },
+        {
+          "deg": -90,
+          "kind": "pave",
+          "to": 15.0
+        },
+        {
+          "deg": -150,
+          "kind": "gold",
+          "to": 16.0
+        },
+        {
+          "deg": 150,
+          "kind": "pave",
+          "to": 15.0
+        }
+      ],
+      "accentGems": {
+        "AccentPink": "pink_sapphire",
+        "AccentGarnet": "garnet",
+        "AccentCitrine": "citrine",
+        "AccentZircon": "zircon",
+        "AccentTopaz": "blue_topaz",
+        "AccentAmethyst": "amethyst"
+      },
+      "renderDistance": 1.7,
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band",
+        "Drop"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "cushion"
+          ],
+          "minLengthMm": 3.5,
+          "maxLengthMm": 5.5,
+          "minWidthMm": 3.5,
+          "maxWidthMm": 5.5,
+          "maxDepthMm": 3.6,
+          "adjustRangeMm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
       "id": "necklace_riviera",
       "category": "necklace",
       "builder": "riviera",
@@ -289,6 +635,75 @@
           "fixedLengthMm": 0
         }
       ]
+    },
+    {
+      "id": "necklace_lariat",
+      "category": "necklace",
+      "builder": "lariat",
+      "modelFile": "Necklace_OvalLariat",
+      "display": "none",
+      "displayName": "Oval Halo Lariat",
+      "settingStyle": "Y necklace: halo centre with a claw-set drop on a fine chain",
+      "description": "The chain meets at a halo-set centre stone, and a 32 mm chain hangs a claw-set oval below it. The drop takes the same gemstone as the centre.",
+      "chainLengthMm": 450,
+      "defaultMetalId": "white_gold",
+      "defaultGemstoneId": "blue_topaz",
+      "defaultShapeId": "oval",
+      "defaultStoneLengthMm": 9.0,
+      "defaultStoneWidthMm": 6.5,
+      "shoulderDeg": 52,
+      "drop": {
+        "shapeId": "oval",
+        "lengthMm": 8.0,
+        "widthMm": 6.0,
+        "chainMm": 32
+      },
+      "accentGems": {
+        "AccentMatch": "center"
+      },
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band",
+        "Drop"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "oval",
+            "round",
+            "cushion",
+            "pear"
+          ],
+          "minLengthMm": 7.5,
+          "maxLengthMm": 10.5,
+          "minWidthMm": 5.5,
+          "maxWidthMm": 8.0,
+          "maxDepthMm": 5.5,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ],
+      "renderDropMm": 50
     },
     {
       "id": "bracelet_bangle",
@@ -606,6 +1021,198 @@
           "adjustRangeMm": {
             "x": 0.0,
             "y": 0.2,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "earring_pear_cluster",
+      "category": "earring",
+      "builder": "stud",
+      "earringStyle": "claw_halo",
+      "pointUp": true,
+      "earringBack": "screw",
+      "modelFile": "Earring_PearCluster",
+      "display": "none",
+      "displayName": "Pear Cluster Studs",
+      "settingStyle": "Matched pears in claw-set halos, screw backs",
+      "description": "Each pear sits point-up in a halo of accents parted by pointed claws, on a post with a secure screw back.",
+      "defaultMetalId": "yellow_gold",
+      "defaultGemstoneId": "ruby",
+      "defaultShapeId": "pear",
+      "defaultStoneLengthMm": 7.0,
+      "defaultStoneWidthMm": 5.0,
+      "haloStoneMm": 1.3,
+      "renderDistance": 0.9,
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band",
+        "Drop"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "pear",
+            "oval"
+          ],
+          "minLengthMm": 6.0,
+          "maxLengthMm": 8.5,
+          "minWidthMm": 4.2,
+          "maxWidthMm": 6.0,
+          "maxDepthMm": 4.6,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
+            "z": 0.0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "earring_blossom",
+      "category": "earring",
+      "builder": "stud",
+      "earringStyle": "flower",
+      "modelFile": "Earring_Blossom",
+      "display": "none",
+      "displayName": "Blossom Studs",
+      "settingStyle": "Matched pave flowers on posts",
+      "description": "Five pave petals of pink sapphires and diamond-style accents round a small centre stone. They match the Blossom Pendant.",
+      "defaultMetalId": "rose_gold",
+      "defaultGemstoneId": "ruby",
+      "defaultShapeId": "round",
+      "defaultStoneLengthMm": 3.0,
+      "petalLengthMm": 5.0,
+      "petalWidthMm": 4.2,
+      "paveStoneMm": 0.75,
+      "paveSeed": 5,
+      "renderDistance": 0.95,
+      "accentGems": {
+        "AccentPink": "pink_sapphire"
+      },
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band",
+        "Drop"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "round",
+            "cushion"
+          ],
+          "minLengthMm": 3.0,
+          "maxLengthMm": 4.0,
+          "minWidthMm": 3.0,
+          "maxWidthMm": 4.0,
+          "maxDepthMm": 2.6,
+          "adjustRangeMm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "fixedGemstoneId": "",
+          "fixedShapeId": "",
+          "fixedLengthMm": 0
+        }
+      ]
+    },
+    {
+      "id": "earring_oval_drop",
+      "category": "earring",
+      "builder": "stud",
+      "earringStyle": "halo",
+      "modelFile": "Earring_OvalHaloDrop",
+      "display": "none",
+      "displayName": "Oval Halo Drop Earrings",
+      "settingStyle": "Halo studs with a claw-set oval on a short chain",
+      "description": "An oval in a halo of accents on a post, with a second oval hanging from a short chain below. The drop takes the same gemstone as the stud.",
+      "defaultMetalId": "white_gold",
+      "defaultGemstoneId": "blue_topaz",
+      "defaultShapeId": "oval",
+      "defaultStoneLengthMm": 7.0,
+      "defaultStoneWidthMm": 5.0,
+      "renderDistance": 1.15,
+      "renderTargetZ": -9.0,
+      "drop": {
+        "shapeId": "oval",
+        "lengthMm": 6.0,
+        "widthMm": 4.4,
+        "chainMm": 10
+      },
+      "accentGems": {
+        "AccentMatch": "center"
+      },
+      "metalRendererPrefixes": [
+        "Chain",
+        "Clasp",
+        "Links",
+        "Collet",
+        "Station",
+        "Box",
+        "Head",
+        "Halo",
+        "Bezel",
+        "Attach",
+        "Band",
+        "Drop"
+      ],
+      "accentStoneRendererPrefixes": [
+        "Accent"
+      ],
+      "mounts": [
+        {
+          "id": "Center",
+          "role": "center",
+          "supportedShapes": [
+            "oval",
+            "round",
+            "cushion",
+            "pear"
+          ],
+          "minLengthMm": 6.0,
+          "maxLengthMm": 8.5,
+          "minWidthMm": 4.5,
+          "maxWidthMm": 6.5,
+          "maxDepthMm": 4.8,
+          "adjustRangeMm": {
+            "x": 0.2,
+            "y": 0.3,
             "z": 0.0
           },
           "fixedGemstoneId": "",
