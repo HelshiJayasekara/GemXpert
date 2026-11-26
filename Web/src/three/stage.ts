@@ -4,12 +4,14 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { GEM_FILES, RING_FILES, type Gemstone } from "../lib/catalog";
+import { CATEGORIES, GEM_FILES, byId, categoryOf, pieceFile, type Category, type Gemstone, type RingDef } from "../lib/catalog";
 import { designView, useApp } from "../lib/store";
 import { live, sim } from "../wearable/live";
 import { GEN } from "./ringGenerator.js";
 
 const HOME = { pos: new THREE.Vector3(40, 26, 72), target: new THREE.Vector3(0, 2, 0) };
+// Rough size of each display relative to the ring stand (camera distances, top/side views).
+const SCALE: Record<Category, number> = { ring: 1, pendant: 2.4, necklace: 4.6, bracelet: 3.1, earring: 1.8 };
 
 export class Stage {
   private renderer: THREE.WebGLRenderer;
@@ -17,8 +19,11 @@ export class Stage {
   private camera = new THREE.PerspectiveCamera(28, 1, 1, 4000);
   private controls: OrbitControls;
   private loader = new GLTFLoader();
-  private stand = new THREE.Group();
+  private stand = new THREE.Group();        // ring stand (stays still while the ring turns)
   private pivot = new THREE.Group();        // wearable orientation is applied here
+  private key: THREE.SpotLight;
+  private displayCat: Category | null = null;
+  private anchorZ = 0;                      // bail position on the length axis: the head scales about it
   private handHolder = new THREE.Group();
   private handLoad: Promise<void> | null = null;
   private handView = { pos: new THREE.Vector3(70, 190, -170), target: new THREE.Vector3(0, 0, -40) };
@@ -28,6 +33,14 @@ export class Stage {
   private ringRoot: THREE.Object3D | null = null;
   private headScaler: THREE.Group | null = null;
   private centerGem: THREE.Mesh | null = null;
+  private twins: { scaler: THREE.Group; gem: THREE.Mesh }[] = [];   // the second earring of a pair follows the centre stone
+  private loose = new THREE.Group();        // Gemstone Gallery: one loose stone on a small gem tray (millimetres)
+  private looseInner = new THREE.Group();   // holds the stone, scaled like a ring root (m -> mm)
+  private looseTray: THREE.Mesh;            // light felt pad: gives a transparent stone something to refract, so it shows its colour
+  private looseGem: THREE.Mesh | null = null;
+  private looseMat = Stage.makeGem();
+  private looseOn = false;
+  private looseShape: string | null = null;
   private metalMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 1, roughness: 0.08, envMapIntensity: 1.25 });
   private gemMat = Stage.makeGem();
   private accentMat = Stage.makeGem();
@@ -60,7 +73,7 @@ export class Stage {
     c.autoRotateSpeed = 0.9;
     c.addEventListener("start", () => this.setAutoRotate(false));
 
-    const key = new THREE.SpotLight(0xffe2bd, 3.2, 0, Math.PI / 7, 0.6, 0);
+    const key = (this.key = new THREE.SpotLight(0xffe2bd, 3.2, 0, Math.PI / 7, 0.6, 0));
     key.position.set(20, 160, 60);
     this.scene.add(key, key.target, new THREE.HemisphereLight(0xfff1dd, 0x120e10, 0.35));
 
@@ -76,6 +89,12 @@ export class Stage {
     cushion.position.y = -10.8;
     this.stand.add(plinth, rim, cushion);
     this.scene.add(this.stand, this.pivot);
+    this.loose.visible = false;
+    this.looseInner.scale.setScalar(1000);
+    this.looseTray = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.03, 1, 96),
+      new THREE.MeshPhysicalMaterial({ color: 0xb9b4ab, roughness: 0.85, sheen: 0.4, sheenColor: 0xffffff }));
+    this.loose.add(this.looseInner, this.looseTray);
+    this.pivot.add(this.loose);
     this.handHolder.visible = false;
     this.handHolder.matrixAutoUpdate = false;
     this.pivot.add(this.handHolder);
@@ -90,10 +109,13 @@ export class Stage {
     this.unsub = useApp.subscribe((s, prev) => {
       if (s.design !== prev.design || s.ringVersion !== prev.ringVersion || s.draftRing !== prev.draftRing || s.cat !== prev.cat) this.queueSync();
       if (s.autoRotate !== prev.autoRotate) this.controls.autoRotate = s.autoRotate;
+      if (s.view !== prev.view || s.gallery !== prev.gallery) this.syncLoose().catch((e) => console.error(e));
       if (s.wear.mode !== "off" && prev.wear.mode === "off") this.setAutoRotate(false);   // the wearable drives the ring now
     });
     this.queueSync();
+    this.syncLoose().catch((e) => console.error(e));
     this.tick();
+    if (import.meta.env.DEV) (window as unknown as { __gxStage: Stage }).__gxStage = this;   // debugging in npm run dev
   }
 
   dispose() {
@@ -115,7 +137,7 @@ export class Stage {
     mat.attenuationColor.copy(isClear ? new THREE.Color(0xffffff) : c);
     mat.attenuationDistance = isClear ? Infinity : 3.6;
     mat.ior = Math.min(g.refractiveIndex, 2.333);   // three.js caps IOR at 2.333 (diamond is 2.42)
-    mat.dispersion = isClear ? 3.5 : 0.8;
+    mat.dispersion = isClear ? 3.5 : Math.min(3, g.dispersion * 45);   // fire follows the mineral: corundum 0.8, zircon 1.8, quartz 0.6
     mat.needsUpdate = true;
   }
 
@@ -138,8 +160,9 @@ export class Stage {
       useApp.setState({ customInfo: { ...useApp.getState().customInfo, [r.id]: built.info } });
       root = built.root;
     } else {
-      if (!this.ringCache[r.id]) this.ringCache[r.id] = (await this.loader.loadAsync(`/models/${RING_FILES[r.id]}.glb`)).scene;
-      root = this.ringCache[r.id].clone(true);
+      const file = pieceFile(r);   // custom necklaces and bracelets share their base piece's model
+      if (!this.ringCache[file]) this.ringCache[file] = (await this.loader.loadAsync(`/models/${file}.glb`)).scene;
+      root = this.ringCache[file].clone(true);
     }
     if (this.ringRoot) this.pivot.remove(this.ringRoot);
     this.ringRoot = root;
@@ -152,14 +175,30 @@ export class Stage {
       else if (metalPrefixes.some((p) => m.name.startsWith(p))) m.material = this.metalMat;
     });
     // Wrap the centre head so it can follow the stone's footprint (the stone itself is a sibling).
+    // A pendant bail (Attach_*) stays where it is on the chain; the head scales about it instead.
+    const wrapHead = (mount: THREE.Object3D) => {
+      const scaler = new THREE.Group();
+      scaler.name = "HeadScaler";
+      [...mount.children].filter((c) => !c.name.startsWith("Attach_")).forEach((c) => scaler.add(c));
+      mount.add(scaler);
+      return scaler;
+    };
     const mount = root.getObjectByName("GemMount_Center")!;
-    this.headScaler = new THREE.Group();
-    this.headScaler.name = "HeadScaler";
-    [...mount.children].forEach((c) => this.headScaler!.add(c));
-    mount.add(this.headScaler);
-    this.centerGem = new THREE.Mesh(await this.loadGemGeometry(v.d.shapeId), this.gemMat);
+    this.headScaler = wrapHead(mount);
+    this.anchorZ = mount.getObjectByName("Attach_Bail")?.position.z ?? 0;
+    const gemGeo = await this.loadGemGeometry(v.d.shapeId);
+    this.centerGem = new THREE.Mesh(gemGeo, this.gemMat);
     this.centerGem.name = "CenterGem";
     mount.add(this.centerGem);
+    // Earring pairs: GemMount_Pair carries the same head and takes the same stone.
+    this.twins = [];
+    const pair = root.getObjectByName("GemMount_Pair");
+    if (pair) {
+      const gem = new THREE.Mesh(gemGeo, this.gemMat);
+      gem.name = "PairGem";
+      this.twins.push({ scaler: wrapHead(pair), gem });
+      pair.add(gem);
+    }
     for (const m of r.mounts.filter((x) => x.role === "side" && x.fixedShapeId)) {
       const node = root.getObjectByName(`GemMount_${m.id}`);
       if (!node) continue;
@@ -169,6 +208,7 @@ export class Stage {
       node.add(g);
     }
     this.pivot.add(root);
+    this.applyDisplay(r);
   }
 
   private queueSync() {
@@ -189,17 +229,107 @@ export class Stage {
     }
     if (this.loadedShapeId !== v.d.shapeId) {
       this.centerGem!.geometry = await this.loadGemGeometry(v.d.shapeId);
+      this.twins.forEach((t) => { t.gem.geometry = this.centerGem!.geometry; });
       this.loadedShapeId = v.d.shapeId;
     }
     const cur = designView(useApp.getState())!;   // the design may have moved on while models loaded
     this.metalMat.color.set(cur.metal.colorHex);
     this.metalMat.roughness = Math.max(0.04, (1 - cur.metal.smoothness) * 0.6);
     this.styleGem(this.gemMat, cur.gem);
-    const head = cur.headDefaults();
-    this.headScaler!.scale.set(cur.d.widthMm / head.W, 1, cur.d.lengthMm / head.L);
+    const head = cur.headDefaults(), kz = cur.d.lengthMm / head.L, shift = this.anchorZ * (1 - kz);
+    this.headScaler!.scale.set(cur.d.widthMm / head.W, 1, kz);
+    this.headScaler!.position.set(0, 0, shift);
     this.centerGem!.scale.set(cur.d.widthMm, cur.depthMm, cur.d.lengthMm);
-    this.centerGem!.position.set(cur.d.seat.x * 0.001, cur.d.seat.y * 0.001, cur.d.seat.z * 0.001);
+    this.centerGem!.position.set(cur.d.seat.x * 0.001, cur.d.seat.y * 0.001, cur.d.seat.z * 0.001 + shift);
+    for (const t of this.twins) {   // mirror twin: side-to-side seat offset flips
+      t.scaler.scale.copy(this.headScaler!.scale); t.scaler.position.copy(this.headScaler!.position);
+      t.gem.scale.copy(this.centerGem!.scale);
+      t.gem.position.set(-cur.d.seat.x * 0.001, cur.d.seat.y * 0.001, cur.d.seat.z * 0.001 + shift);
+    }
     this.gemMat.emissive.set(cur.fit().status === "bad" ? 0x5a0d0d : 0x000000);
+  }
+
+  // ------------------------------------------------------------------ displays
+  private home(cat: Category = this.displayCat || "ring") {
+    if (this.looseOn) {                                            // the loose stone, from above and in front
+      const g = useApp.getState().gallery, d = 5.6 * Math.max(g.lengthMm, g.widthMm) + 12;
+      return { pos: new THREE.Vector3(0.36, 0.62, 0.7).normalize().multiplyScalar(d), target: new THREE.Vector3(0, 0, 0) };
+    }
+    if (cat === "ring") return HOME;
+    if (cat === "bracelet") return { pos: new THREE.Vector3(205, 58, 158), target: new THREE.Vector3(0, -6, 0) };
+    if (cat === "necklace") return { pos: new THREE.Vector3(130, 95, 520), target: new THREE.Vector3(0, -5, 8) };      // the whole necklace
+    if (cat === "earring") return { pos: new THREE.Vector3(46, 26, 138), target: new THREE.Vector3(0, 5, 0) };       // the pair, front three-quarter
+    // Pendant: the stone and bail with the chain rising either side of it.
+    const target = this.centerGem ? this.centerGem.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 9, 0)) : new THREE.Vector3(0, -33, 50);
+    return { pos: target.clone().add(new THREE.Vector3(62, 26, 175)), target };
+  }
+
+  /** Rings sit on the stand; every other piece is shown on its own. Frames the piece when the jewellery type changes. */
+  private applyDisplay(r: RingDef) {
+    const cat = categoryOf(r), onFinger = useApp.getState().onFinger;
+    if (onFinger && cat !== "ring") { this.handHolder.visible = false; useApp.setState({ onFinger: false }); }
+    const finger = useApp.getState().onFinger;
+    this.stand.visible = cat === "ring" && !finger && !this.looseOn;
+    if (this.ringRoot) this.ringRoot.visible = !this.looseOn;
+    if (cat === this.displayCat) return;
+    this.displayCat = cat;
+    const k = SCALE[cat];
+    this.controls.minDistance = 16 * Math.min(k, 2);
+    this.controls.maxDistance = 420 * Math.max(k / 1.6, 1);
+    const big = cat !== "ring";
+    const [kx, ky, kz] = cat === "bracelet" ? [40, 320, 170] : cat === "earring" ? [60, 170, 230] : big ? [70, 260, 430] : [20, 160, 60];
+    const neck = cat === "pendant" || cat === "necklace";       // modelled where they would hang at the neck
+    this.key.position.set(kx, ky, kz);
+    this.key.target.position.set(0, neck ? -30 : 0, neck ? 40 : 0);
+    this.key.angle = big ? Math.PI / 6 : Math.PI / 7;
+    this.key.intensity = cat === "bracelet" ? 2.3 : cat === "earring" ? 2.6 : big ? 2.4 : 3.2;
+    if (!finger && !this.looseOn) { const h = this.home(cat); this.flyTo(h.pos, h.target); }
+  }
+
+  // ------------------------------------------------------------------ gemstone gallery
+  /** Shows the Gallery's loose stone while that screen is open, and puts the design back on display afterwards. */
+  private async syncLoose() {
+    const s = useApp.getState(), on = s.view === "gallery";
+    if (on && s.cat && s.meta) {
+      const g = s.gallery, gem = byId(s.cat.gemstones, g.gemId), shape = byId(s.cat.shapes, g.shapeId);
+      if (!gem || !shape) return;
+      if (this.looseShape !== g.shapeId) {
+        const geo = await this.loadGemGeometry(g.shapeId);
+        if (!this.looseGem) { this.looseGem = new THREE.Mesh(geo, this.looseMat); this.looseGem.name = "LooseGem"; this.looseInner.add(this.looseGem); }
+        else this.looseGem.geometry = geo;
+        this.looseShape = g.shapeId;
+      }
+      this.styleGem(this.looseMat, gem);
+      const depth = g.widthMm * (s.meta.gemCuts?.[g.shapeId]?.depth_ratio ?? shape.depthRatio);
+      this.looseGem!.scale.set(g.widthMm, depth, g.lengthMm);
+      const crown = s.meta.gemCuts?.[g.shapeId]?.crown_fraction ?? 0.27;
+      this.looseGem!.position.set(0, depth * (0.5 - crown) * 0.001, 0);   // centre the whole stone (crown + pavilion) on the orbit point
+      const r = 0.85 * Math.max(g.lengthMm, g.widthMm) + 1.2;               // tray just under the culet, a little wider than the stone
+      this.looseTray.scale.set(r, 0.8, r);
+      // Coloured stones need light behind them to show their colour; a colourless stone needs a dark pad to show its facets.
+      const pad = this.looseTray.material as THREE.MeshPhysicalMaterial, clear = g.gemId === "diamond";
+      pad.color.set(clear ? 0x2c2b2a : 0xb9b4ab);
+      pad.sheen = clear ? 0 : 0.4;
+      this.looseTray.position.y = -depth / 2 - 0.45;
+    }
+    if (on === this.looseOn) return;
+    this.looseOn = on;
+    this.loose.visible = on;
+    const finger = s.onFinger, cat = this.displayCat || "ring";
+    if (this.ringRoot) this.ringRoot.visible = !on;
+    this.stand.visible = cat === "ring" && !finger && !on;
+    this.handHolder.visible = finger && !on;
+    if (on) {
+      this.controls.minDistance = 6; this.controls.maxDistance = 160;
+      this.key.position.set(20, 160, 60); this.key.target.position.set(0, 0, 0);
+      this.key.angle = Math.PI / 7; this.key.intensity = 3.2;
+      const h = this.home(); this.setAutoRotate(true); this.flyTo(h.pos, h.target);
+    } else {
+      this.displayCat = null;                                      // re-frame whatever is on display
+      const v = designView(s);
+      if (v && this.ringRoot) this.applyDisplay(v.ring);
+      if (finger) this.flyTo(this.handView.pos, this.handView.target);
+    }
   }
 
   // ------------------------------------------------------------------ hand
@@ -267,6 +397,12 @@ export class Stage {
   }
 
   async setFinger(on: boolean) {
+    const cat = this.displayCat || "ring";
+    if (on && this.looseOn) { useApp.getState().showToast("The Gemstone Gallery shows loose stones. Choose a ring to see it on the hand."); return; }
+    if (on && cat !== "ring") {
+      useApp.getState().showToast(`The hand is for rings; ${CATEGORIES.find((c) => c.id === cat)!.plural.toLowerCase()} are shown on their own.`);
+      return;
+    }
     if (on) {
       try { await this.ensureHand(); }
       catch (e) { console.error(e); useApp.getState().showToast("The hand model could not be loaded."); return; }
@@ -274,7 +410,8 @@ export class Stage {
     this.handHolder.visible = on;
     this.stand.visible = !on;
     this.setAutoRotate(false);
-    this.flyTo(on ? this.handView.pos : HOME.pos, on ? this.handView.target : HOME.target);
+    const h = this.home();
+    this.flyTo(on ? this.handView.pos : h.pos, on ? this.handView.target : h.target);
     useApp.setState({ onFinger: on });
     useApp.getState().showToast(on ? "On a left ring finger, ring size 17.3 mm. Rotate the wearable to turn your hand." : "Back on the display stand.");
   }
@@ -297,17 +434,25 @@ export class Stage {
   }
   resetView() {
     if (useApp.getState().onFinger) { this.setAutoRotate(false); this.flyTo(this.handView.pos, this.handView.target); return; }
-    this.setAutoRotate(true); this.flyTo(HOME.pos, HOME.target);
+    const h = this.home();
+    this.setAutoRotate(true); this.flyTo(h.pos, h.target);
   }
   closeUp() {
+    if (this.looseOn) { const h = this.home(); this.setAutoRotate(false); this.flyTo(h.pos.clone().multiplyScalar(0.6), h.target); return; }
     if (!this.centerGem) return;
     this.setAutoRotate(false);
     const p = this.centerGem.getWorldPosition(new THREE.Vector3());
-    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(this.pivot.quaternion);
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(this.centerGem.getWorldQuaternion(new THREE.Quaternion()));   // out of the table
     this.flyTo(p.clone().add(up.multiplyScalar(14)).add(new THREE.Vector3(9, 0, 13)), p);
   }
-  topView() { this.setAutoRotate(false); this.flyTo(new THREE.Vector3(0, 70, 0.01), new THREE.Vector3(0, 10, 0)); }
-  sideView() { this.setAutoRotate(false); this.flyTo(new THREE.Vector3(70, 8, 0), new THREE.Vector3(0, 4, 0)); }
+  topView() {
+    const k = this.looseOn ? 0.45 : SCALE[this.displayCat || "ring"], t = this.home().target;
+    this.setAutoRotate(false); this.flyTo(t.clone().add(new THREE.Vector3(0, 70 * k, 0.01)), t.clone().add(new THREE.Vector3(0, 8, 0)));
+  }
+  sideView() {
+    const k = this.looseOn ? 0.45 : SCALE[this.displayCat || "ring"], t = this.home().target;
+    this.setAutoRotate(false); this.flyTo(t.clone().add(new THREE.Vector3(70 * k, 6, 0)), t.clone().add(new THREE.Vector3(0, 2, 0)));
+  }
 
   // ------------------------------------------------------------------ frame loop
   private tick = () => {

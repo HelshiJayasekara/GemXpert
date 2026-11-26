@@ -4,11 +4,13 @@ import { How, Showroom, Welcome } from "./screens/Basic";
 import { Customise, Gems, Rings } from "./screens/Design";
 import { Inspect, Saved, Summary } from "./screens/Review";
 import { Photo } from "./screens/Photo";
+import { PhotoPiece } from "./screens/PhotoPiece";
+import { Gallery } from "./screens/Gallery";
 import { Wearable } from "./screens/Wearable";
 
 const SCREENS: Record<ViewId, () => React.JSX.Element> = {
   welcome: Welcome, "how-it-works": How, showroom: Showroom, rings: Rings, gemstones: Gems, customise: Customise,
-  inspect: Inspect, summary: Summary, saved: Saved, wearable: Wearable, photo: Photo,
+  inspect: Inspect, summary: Summary, saved: Saved, wearable: Wearable, photo: Photo, "photo-piece": PhotoPiece, gallery: Gallery,
 };
 
 export function Panel() {

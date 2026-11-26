@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CATEGORIES, PIECE_NOUN, baseOf, categoryOf } from "../lib/catalog";
 import { useApp, useDesignView } from "../lib/store";
 import { getStage } from "../three/stage";
 import { ConfirmRow, FitBox, GoButton, Swatch } from "../ui";
@@ -9,10 +10,10 @@ export function Inspect() {
   const current = JSON.stringify(v.d);
   return (
     <>
-      <p className="lede">Drag to turn the ring, scroll to zoom, or use the controls under the stage. On a hand, the GemXpert wearable turns it for you.</p>
+      <p className="lede">Drag to turn the {PIECE_NOUN[categoryOf(v.ring)]}, scroll to zoom, or use the controls under the stage. The GemXpert wearable can turn it for you.</p>
       <div className="row">
         <button className="btn" style={{ flex: 1 }} onClick={() => getStage()?.closeUp()}>Close-up stone</button>
-        <button className="btn" style={{ flex: 1 }} onClick={() => getStage()?.setFinger(!onFinger)}>{onFinger ? "Back to stand" : "Show on hand"}</button>
+        {categoryOf(v.ring) === "ring" && <button className="btn" style={{ flex: 1 }} onClick={() => getStage()?.setFinger(!onFinger)}>{onFinger ? "Back to stand" : "Show on hand"}</button>}
       </div>
       <div className="row">
         <button className="btn" style={{ flex: 1 }} onClick={() => getStage()?.topView()}>Top view</button>
@@ -42,7 +43,7 @@ export function Inspect() {
 export function Summary() {
   const v = useDesignView(), r = v.ring, g = v.gem, s = v.shape, m = v.metal, f = v.fit(), cm = v.centerMount, d = v.d;
   const customInfo = useApp((st) => st.customInfo), meta = useApp((st) => st.meta)!;
-  const extras = r.custom ? customInfo[r.id] || { accentStones: 0 } : meta.rings[r.id];
+  const extras = r.custom && r.spec ? customInfo[r.id] || { accentStones: 0 } : meta.rings[baseOf(r)];
   const side = r.mounts.find((x) => x.role === "side");
   const [name, setName] = useState(`${g.displayName} ${r.displayName}`);
   const save = () => { useApp.getState().saveDesign(name); useApp.getState().go("saved"); };
@@ -50,17 +51,21 @@ export function Summary() {
     <>
       <FitBox v={v} />
       <dl className="spec">
-        <dt>Ring design</dt><dd>{r.displayName}</dd>
+        <dt>{CATEGORIES.find((c) => c.id === categoryOf(r))!.label} design</dt><dd>{r.displayName}</dd>
         <dt>Setting</dt><dd>{r.settingStyle}</dd>
         <dt>Gemstone</dt><dd>{g.displayName} ({g.mineral})</dd>
         <dt>Cut</dt><dd>{s.displayName}</dd>
         <dt>Dimensions</dt><dd className="mono">{d.lengthMm.toFixed(1)} × {d.widthMm.toFixed(1)} × {v.depthMm.toFixed(2)} mm</dd>
-        <dt>Est. weight</dt><dd className="mono">≈ {v.carat.toFixed(2)} ct</dd>
+        <dt>Est. weight</dt><dd className="mono">≈ {v.carat.toFixed(2)} ct{categoryOf(r) === "earring" ? ` each · ≈ ${(v.carat * 2).toFixed(2)} ct the pair` : ""}</dd>
+        {categoryOf(r) === "earring" && <><dt>Pair</dt><dd>Two matched {g.displayName.toLowerCase()} stones, one in each earring</dd></>}
         <dt>Seat offset</dt><dd className="mono">height {d.seat.y.toFixed(2)} mm · side {d.seat.x.toFixed(2)} mm</dd>
         <dt>Metal</dt><dd>{m.displayName}</dd>
-        <dt>Ring size</dt><dd className="mono">{r.innerDiameterMm} mm inner diameter</dd>
+        {categoryOf(r) === "ring" && <><dt>Ring size</dt><dd className="mono">{r.innerDiameterMm} mm inner diameter</dd></>}
+        {r.chainLengthMm && <><dt>Length</dt><dd className="mono">{r.chainLengthMm} mm ({(r.chainLengthMm / 25.4).toFixed(0)} in)</dd></>}
+        {r.innerWidthMm && <><dt>Inside size</dt><dd className="mono">{r.innerWidthMm} × {r.innerHeightMm} mm</dd></>}
         {side && <><dt>Side stones</dt><dd className="mono">2 × round diamond-style {side.fixedLengthMm} mm</dd></>}
-        {extras?.accentStones > 0 && <><dt>Halo</dt><dd className="mono">{extras.accentStones} × {extras.accentSizeMm} mm accent stones</dd></>}
+        {extras?.accentStones > 0 && <><dt>{["halo", "pendant_halo", "earring_halo"].includes(baseOf(r)) || (r.custom && r.spec) ? "Halo" : "Accent stones"}</dt><dd className="mono">{extras.accentStones}{extras.accentSizeMm ? ` × ${extras.accentSizeMm} mm` : " graduated"} accent stones</dd></>}
+        {r.baseId && <><dt>Based on</dt><dd>{v.cat.rings.find((x) => x.id === r.baseId)?.displayName ?? r.baseId}</dd></>}
         {r.custom && <><dt>Origin</dt><dd>{r.source === "photo" ? "Rebuilt from your photo" : "Designed by hand"}</dd></>}
         <dt>Head accepts</dt><dd className="mono">{cm.minLengthMm}-{cm.maxLengthMm} × {cm.minWidthMm}-{cm.maxWidthMm} mm</dd>
       </dl>

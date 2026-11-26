@@ -1,18 +1,27 @@
-import { RING_FILES, RING_ICON, SHAPE_ICONS, listJoin } from "../lib/catalog";
+import { CATEGORIES, PIECE_NOUN, RING_ICON, SHAPE_ICONS, categoryOf, listJoin, pieceFile } from "../lib/catalog";
 import { useApp, useDesignView } from "../lib/store";
 import { FitBox, GoButton, Slider, Swatch, cssVars, rangeTrack } from "../ui";
 
 export function Rings() {
   const cat = useApp((s) => s.cat)!, customRings = useApp((s) => s.customRings), ringId = useApp((s) => s.design.ringId);
+  const category = useApp((s) => s.category), setCategory = useApp((s) => s.setCategory);
   const select = useApp((s) => s.selectRing);
+  const info = CATEGORIES.find((c) => c.id === category)!;
+  const list = [...cat.rings, ...customRings].filter((r) => categoryOf(r) === category);
   return (
     <>
-      <p className="lede">Five catalogue settings plus any you have designed from a photo. Selecting a design loads its stone and metal.</p>
-      <GoButton to="photo" block>Design a ring from a photo</GoButton>
+      <div className="seg" role="tablist" aria-label="Jewellery type">
+        {CATEGORIES.map((c) => (
+          <button key={c.id} role="tab" aria-selected={c.id === category} onClick={() => setCategory(c.id)}>{c.plural}</button>
+        ))}
+      </div>
+      <p className="lede">{info.blurb} Selecting a design loads its stone and metal.</p>
+      {category === "ring" && <GoButton to="photo" block>Design a ring from a photo</GoButton>}
+      {category !== "ring" && <GoButton to="photo-piece" block>Design a {PIECE_NOUN[category]} from a photo</GoButton>}
       <div className="cards">
-        {[...cat.rings, ...customRings].map((r) => {
+        {list.map((r) => {
           const m = r.mounts.find((x) => x.role === "center")!;
-          const img = r.custom ? r.photo || RING_ICON : `/renders/${RING_FILES[r.id]}.png`;
+          const img = r.custom ? r.photo || (r.baseId ? `/renders/${pieceFile(r)}.png` : RING_ICON) : `/renders/${pieceFile(r)}.png`;
           return (
             <button key={r.id} className="card" aria-pressed={r.id === ringId} onClick={() => select(r.id, true)}>
               <img src={img} alt={r.displayName} loading="lazy" />

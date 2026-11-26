@@ -1,6 +1,6 @@
 # GemXpert Studio (web)
 
-The browser version of GemXpert: choose a ring, fit a gemstone, customise it, put it on a hand and turn it with the GemXpert
+The browser version of GemXpert: choose a ring, pendant, necklace or bracelet, fit a gemstone, customise it, put it on a hand and turn it with the GemXpert
 wearable over Bluetooth. Live at **gemxpert.4axismedia.com** once deployed ([how](../Documentation/Deployment/VERCEL_DEPLOY.md)).
 
 ```powershell
@@ -15,14 +15,14 @@ http://localhost:5173
 
 | Path | What |
 |---|---|
-| `src/three/stage.ts` | three.js stage: display stand, ring + stone, hand fitting, wearable rotation, camera moves |
+| `src/three/stage.ts` | three.js stage: ring stand (other pieces are shown on their own; earring pairs keep both stones in step with the design), piece + stone, hand fitting, wearable rotation, camera moves |
 | `src/three/ringGenerator.js` | parametric ring builder (port of `Blender/Scripts/gx_rings.py`) for custom rings |
 | `src/wearable/ble.ts` | Web Bluetooth client for the ESP32 wearable (protocol in `Documentation/Hardware/ESP32_WEARABLE_SETUP.md`) |
 | `src/lib/` | catalogue types and fit rules (`catalog.ts`), app state (`store.ts`, zustand) |
-| `src/screens/` | the panel screens (React) |
-| `src/photo/` | "design from a photo": ring spec rules and the browser side of the analysis call |
+| `src/screens/` | the panel screens (React), including the Gemstone Gallery (`Gallery.tsx`): every stone and cut as a loose 3D gem |
+| `src/photo/` | "design from a photo": ring spec rules (`spec.ts`), pendant, necklace and bracelet matching (`piece.ts`) and the browser side of the analysis call |
 | `api/` | Vercel functions: `/api/analyse-photo` (Claude API, needs `ANTHROPIC_API_KEY`) and `/api/photo-status` |
-| `public/` | GLB models, catalogue JSON, ring thumbnails |
+| `public/` | GLB models, catalogue JSON (`rings.json`, `jewellery.json` + metadata), design thumbnails |
 
 `npm run dev` also serves the `/api` functions (see `vite.config.ts`), so photo analysis works locally with a `.env.local`.
 
