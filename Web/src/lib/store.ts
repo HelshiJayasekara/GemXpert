@@ -118,10 +118,11 @@ export const useApp = create<AppState>()((set, get) => ({
     if (!r || !s.cat) return;
     const shape = byId(s.cat.shapes, r.defaultShapeId)!;
     const stone = r.custom ? (r.spec || r.pieceSpec)?.stone : undefined;
+    const L0 = r.defaultStoneLengthMm ?? shape.defaultLengthMm;
     const design: Design = {
       ringId: r.id, metalId: r.defaultMetalId, gemId: r.defaultGemstoneId, shapeId: r.defaultShapeId,
-      lengthMm: stone ? stone.lengthMm : shape.defaultLengthMm,
-      widthMm: stone ? stone.widthMm : shape.defaultWidthMm,
+      lengthMm: stone ? stone.lengthMm : L0,
+      widthMm: stone ? stone.widthMm : r.defaultStoneWidthMm ?? (r.defaultStoneLengthMm ?? shape.defaultWidthMm),
       seat: { x: 0, y: 0, z: 0 },
     };
     if (s.keepStone) {   // a stone picked in the Gemstone Gallery follows into the setting (the fit check flags it if it can't)
@@ -144,7 +145,13 @@ export const useApp = create<AppState>()((set, get) => ({
 
   setShape(id) {
     const s = get(), shape = byId(s.cat!.shapes, id)!;
-    get().patchDesign({ shapeId: id, lengthMm: shape.defaultLengthMm, widthMm: shape.defaultWidthMm, seat: { x: 0, y: 0, z: 0 } });
+    // start the new cut at its usual size, kept inside what this setting holds (a blossom takes a 3-4.5 mm centre)
+    const m = designView(s)?.centerMount, clamp = (x: number, lo = -Infinity, hi = Infinity) => Math.min(hi, Math.max(lo, x));
+    let L = clamp(shape.defaultLengthMm, Math.max(m?.minLengthMm ?? 0, shape.minLengthMm), Math.min(m?.maxLengthMm ?? Infinity, shape.maxLengthMm));
+    let W = clamp(shape.defaultWidthMm * (L / shape.defaultLengthMm), m?.minWidthMm, m?.maxWidthMm);
+    if (shape.lockAspect) W = L = Math.min(L, m?.maxWidthMm ?? L);
+    W = Math.min(W, L);
+    get().patchDesign({ shapeId: id, lengthMm: +L.toFixed(1), widthMm: +W.toFixed(1), seat: { x: 0, y: 0, z: 0 } });
   },
 
   restore(d) { set({ design: { ...d, seat: { ...d.seat } } }); },

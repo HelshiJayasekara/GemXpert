@@ -1,14 +1,14 @@
 # Pendants, Necklaces, Bracelets and Earrings
 
-GemXpert has ten pieces besides the rings. They use the **same mount contract as the rings**, so choosing a stone,
+GemXpert has eighteen pieces besides the rings. They use the **same mount contract as the rings**, so choosing a stone,
 the fit check, the size sliders, metals, compare, saving and the wearable all work on them unchanged.
 
 | Category | Pieces | Shown on |
 |---|---|---|
-| Pendant | Solitaire Pendant, Halo Pendant, Bezel Drop Pendant (each on an 18-inch cable chain) | On its own (modelled hanging as it would on a display bust) |
-| Necklace | Riviera Necklace (22 graduated accents + centre drop), Bezel Station Necklace (6 stations + centre drop) | On its own (modelled draped as it would on a display bust) |
+| Pendant | Solitaire Pendant, Halo Pendant, Bezel Drop Pendant, Double Halo Pear Pendant, Pear Cluster Pendant (claw-set halo), Blossom Pendant (five pave petals), Starburst Pendant (six sprays of coloured ovals) (each on an 18-inch cable chain) | On its own (modelled hanging as it would on a display bust) |
+| Necklace | Riviera Necklace (22 graduated accents + centre drop), Bezel Station Necklace (6 stations + centre drop), Oval Halo Lariat (Y necklace: halo centre, 32 mm chain, claw-set drop) | On its own (modelled draped as it would on a display bust) |
 | Bracelet | Three-Stone Bangle (62 × 52 mm inside), Tennis Bracelet (43 × 3 mm accents + raised centre stone) | On its own |
-| Earring pair | Solitaire Studs, Halo Studs (butterfly backs), Bezel Drop Earrings (French hooks) | On their own, no stand (posts, butterfly backs and hooks visible) |
+| Earring pair | Solitaire Studs, Halo Studs, Blossom Studs (butterfly backs), Pear Cluster Studs (screw backs), Bezel Drop Earrings (French hooks), Oval Halo Drop Earrings (halo stud + chain drop) | On their own, no stand (posts, butterfly backs and hooks visible) |
 
 **Earring pairs.** Each model has `GemMount_Center` (the right earring as you look at it) and its mirror twin
 `GemMount_Pair`, with identical heads. The catalogue lists only the Center mount: the app gives the twin the same
@@ -45,7 +45,17 @@ heads is where an earring card or ear lobe would be (no stand is shown).
   by `build_jewellery.py`) is a modelling reference only: the web app shows the pieces on their own.
 * **Bracelets** use ring axes (wrist along Blender Y, centre stone at the top) and are shown on their own.
 * **Fixed accents** (riviera line, stations, tennis line, halo) are merged meshes whose names start with `Accent`, so
-  the app gives them the diamond-style accent material.
+  the app gives them the diamond-style accent material. A piece's `accentGems` can colour some of them: on the Blossom
+  pieces `AccentPink_*` is pink sapphire, and `"AccentMatch": "center"` gives a drop the same gemstone as the centre.
+* **Chain drops** (`Drop_Center` / `Drop_Pair`, lariat and oval drop earrings) hang from the bottom of the head in their own
+  empty. The app does not scale them; it moves them with the bottom of the head, so a larger stone pushes the drop down.
+* **Starburst.** Only the centre head (claws and the ring of pink accents) scales with the stone. The sprays and rays are
+  under `Attach_Burst`, and the bail's origin is at the centre, so the burst and the bail stay put as the stone changes.
+  Each spray's colour comes from `accentGems` (`AccentGarnet_*` = garnet, and so on).
+* **Point-up pears.** `pointUp` turns a head half a turn about its table normal, so a pear hangs with its point to the bail
+  (pendants) or upwards (studs).
+* **Stone size.** `defaultStoneLengthMm` / `defaultStoneWidthMm` set the stone a piece is modelled round (the Blossom takes a
+  3.5 mm centre), and the app starts the design at that size instead of the cut's default.
 
 ## Not done yet
 

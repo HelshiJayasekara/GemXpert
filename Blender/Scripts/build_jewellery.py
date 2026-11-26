@@ -65,16 +65,18 @@ def card(src, dst):
 def render_piece(piece, meta, opts):
     col = gx.collection("Studio")
     M = meta["mounts"]["Center"]["blenderPositionMm"]
-    cat = piece["category"]
+    cat, k = piece["category"], piece.get("renderDistance", 1.0)
     if cat == "pendant":
-        gx.studio(col, target_mm=M, floor_z_mm=M[2] - 30, overhead=True, distance_scale=1.3)
-        gx.camera(col, (M[0] + 34, M[1] - 96, M[2] + 26), (M[0], M[1], M[2] + 3), lens=80)
+        gx.studio(col, target_mm=M, floor_z_mm=M[2] - 30, overhead=True, distance_scale=1.3 * k)
+        gx.camera(col, (M[0] + 34 * k, M[1] - 96 * k, M[2] + 26 * k), (M[0], M[1], M[2] + 3), lens=80)
     elif cat == "necklace":
-        gx.studio(col, target_mm=(0, -40, -40), floor_z_mm=M[2] - 25, overhead=True, distance_scale=3.0)
-        gx.camera(col, (60, -300, 95), (0, -35, -32), lens=58)
+        low = piece.get("renderDropMm", 0)      # a lariat's drop hangs below the necklace
+        gx.studio(col, target_mm=(0, -40, -40 - low / 2), floor_z_mm=M[2] - 25 - low, overhead=True, distance_scale=3.0)
+        gx.camera(col, (60, -300, 95 - low / 2), (0, -35, -32 - low / 2), lens=58)
     elif cat == "earring":
-        gx.studio(col, target_mm=(0, 0, 2), floor_z_mm=-16, overhead=True, distance_scale=1.6)
-        gx.camera(col, (34, -118, 26), (0, 0, 1.5), lens=82)
+        tz = piece.get("renderTargetZ", 1.5)
+        gx.studio(col, target_mm=(0, 0, tz + 0.5), floor_z_mm=tz - 17.5 * k, overhead=True, distance_scale=1.6 * k)
+        gx.camera(col, (34 * k, -118 * k, tz + 24.5 * k), (0, 0, tz), lens=82)
     else:
         floor = -(piece["innerHeightMm"] / 2 + 3.0)
         gx.studio(col, target_mm=(0, 0, 6), floor_z_mm=floor, distance_scale=2.6)
@@ -88,6 +90,7 @@ def render_piece(piece, meta, opts):
 def build_piece_asset(piece, catalogue, opts):
     gx.reset_scene()
     metals, gem_mats = ba.make_materials(catalogue)
+    gj.GEM_MATS = gem_mats                      # pink pave and drops that match the centre stone
     setting_col = gx.collection("Setting")
     preview_col = gx.collection("PreviewGems")
     root, meta, previews = gj.build_piece(piece, catalogue["shapes"], metals[piece["defaultMetalId"]],

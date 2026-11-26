@@ -35,6 +35,8 @@ export interface RingDef {
   mounts: Mount[];
   custom?: boolean; spec?: RingSpec; source?: "photo" | "manual"; photo?: string | null;
   baseId?: string; pieceSpec?: PieceSpec;   // a custom pendant, necklace or bracelet: a catalogue piece with its own stone and metal
+  defaultStoneLengthMm?: number; defaultStoneWidthMm?: number;   // pieces built round a smaller or larger stone than the cut's default
+  accentGems?: Record<string, string>;   // accent mesh prefix -> gemstone id, or "center" to match the centre stone (pink pave, matching drops)
 }
 /** "Design from a photo" for pendants, necklaces and bracelets: the closest catalogue piece, with the stone and metal read from the photo. */
 export interface PieceSpec {
